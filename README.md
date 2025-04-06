@@ -1,4 +1,4 @@
-# Medium MCP Server
+# <img src="https://cdn-static-1.medium.com/_/fp/icons/Medium-Avatar-500x500.svg" alt="Medium Logo" width="32" height="32"> Medium MCP Server
 
 ## Overview
 Medium MCP (Model Context Protocol) is an innovative solution for programmatically interacting with Medium's content ecosystem, enabling intelligent and context-aware content retrieval.
