@@ -2,43 +2,38 @@ import { config } from 'dotenv';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import MediumAuth from './auth';
-import MediumClient from './client';
+import { BrowserMediumClient } from './browser-client';
 
 // Load environment variables
 config();
 
 class MediumMcpServer {
   private server: McpServer;
-  private mediumClient: MediumClient;
-  private auth: MediumAuth;
+  private mediumClient: BrowserMediumClient;
 
   constructor() {
-    // Initialize authentication
-    this.auth = new MediumAuth();
-    
-    // Initialize Medium client
-    this.mediumClient = new MediumClient(this.auth);
+    // Initialize browser-based Medium client
+    this.mediumClient = new BrowserMediumClient();
 
     // Create MCP server instance
     this.server = new McpServer({
       name: "medium-mcp-server",
-      version: "1.0.0"
+      version: "2.0.0"
     });
 
     this.registerTools();
   }
 
   private registerTools() {
-    // Tool for publishing articles
+    // Tool for publishing articles (now browser-based)
     this.server.tool(
       "publish-article",
-      "Publish a new article on Medium",
+      "Publish a new article on Medium using browser automation",
       {
         title: z.string().min(1, "Title is required"),
         content: z.string().min(10, "Content must be at least 10 characters"),
         tags: z.array(z.string()).optional(),
-        publicationId: z.string().optional()
+        isDraft: z.boolean().optional().default(false)
       },
       async (args) => {
         try {
@@ -46,7 +41,7 @@ class MediumMcpServer {
             title: args.title,
             content: args.content,
             tags: args.tags,
-            publicationId: args.publicationId
+            isDraft: args.isDraft
           });
 
           return {
@@ -71,20 +66,20 @@ class MediumMcpServer {
       }
     );
 
-    // Tool for retrieving user publications
+    // Tool for retrieving user's published articles
     this.server.tool(
-      "get-publications",
-      "Retrieve user's publications",
+      "get-my-articles",
+      "Retrieve your published Medium articles",
       {},
       async () => {
         try {
-          const publications = await this.mediumClient.getUserPublications();
+          const articles = await this.mediumClient.getUserArticles();
 
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(publications, null, 2)
+                text: JSON.stringify(articles, null, 2)
               }
             ]
           };
@@ -94,7 +89,7 @@ class MediumMcpServer {
             content: [
               {
                 type: "text",
-                text: `Error retrieving publications: ${error.message}`
+                text: `Error retrieving articles: ${error.message}`
               }
             ]
           };
@@ -102,22 +97,50 @@ class MediumMcpServer {
       }
     );
 
-    // Tool for searching articles
+    // Tool for getting full content of a specific article
     this.server.tool(
-      "search-articles",
-      "Search and filter Medium articles",
+      "get-article-content",
+      "Get the full content of a Medium article by URL",
       {
-        keywords: z.array(z.string()).optional(),
-        publicationId: z.string().optional(),
-        tags: z.array(z.string()).optional()
+        url: z.string().url("Must be a valid URL"),
+        requireLogin: z.boolean().optional().default(true).describe("Whether to attempt login for full content access")
       },
       async (args) => {
         try {
-          const articles = await this.mediumClient.searchArticles({
-            keywords: args.keywords,
-            publicationId: args.publicationId,
-            tags: args.tags
-          });
+          const content = await this.mediumClient.getArticleContent(args.url, args.requireLogin);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: content
+              }
+            ]
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Error retrieving article content: ${error.message}`
+              }
+            ]
+          };
+        }
+      }
+    );
+
+    // Tool for searching Medium articles
+    this.server.tool(
+      "search-medium",
+      "Search Medium for articles by keywords",
+      {
+        keywords: z.array(z.string()).min(1, "At least one keyword is required")
+      },
+      async (args) => {
+        try {
+          const articles = await this.mediumClient.searchMediumArticles(args.keywords);
 
           return {
             content: [
@@ -140,22 +163,78 @@ class MediumMcpServer {
         }
       }
     );
+
+    // Tool to manually trigger login (useful for initial setup)
+    this.server.tool(
+      "login-to-medium",
+      "Manually trigger Medium login process",
+      {},
+      async () => {
+        try {
+          const success = await this.mediumClient.ensureLoggedIn();
+          
+          return {
+            content: [
+              {
+                type: "text",
+                text: success ? "✅ Successfully logged in to Medium" : "❌ Login failed"
+              }
+            ]
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Login error: ${error.message}`
+              }
+            ]
+          };
+        }
+      }
+    );
   }
 
   // Method to start the server
   async start() {
-    // Authenticate first
-    await this.auth.authenticate();
+    try {
+      // Initialize browser client
+      await this.mediumClient.initialize();
+      console.error("🌐 Browser Medium client initialized");
 
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error("🚀 MediumMCP Server Initialized");
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+      console.error("🚀 Medium MCP Server (Browser-based) Initialized");
+    } catch (error) {
+      console.error("Failed to start server:", error);
+      throw error;
+    }
+  }
+
+  // Cleanup method
+  async cleanup() {
+    await this.mediumClient.close();
   }
 }
 
 // Main execution
 async function main() {
   const server = new MediumMcpServer();
+  
+  // Handle graceful shutdown
+  process.on('SIGINT', async () => {
+    console.error("🛑 Shutting down Medium MCP Server...");
+    await server.cleanup();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    console.error("🛑 Shutting down Medium MCP Server...");
+    await server.cleanup();
+    process.exit(0);
+  });
+
   await server.start();
 }
 
