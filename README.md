@@ -310,39 +310,6 @@ Contributions welcome! Please read CONTRIBUTING.md for guidelines.
 ## License
 MIT License - see LICENSE file for details.
 
-## Support
-- 🐛 **Issues**: GitHub Issues
-- 💬 **Discussions**: GitHub Discussions
-- 📧 **Email**: [Contact Author]
-
-## 🤖 CREDIT and DISCLAIMER
-
-### AI-Powered Development
-This entire Medium MCP Server was **developed by AI (Claude/Cursor AI) in just a few hours**, demonstrating the remarkable power of AI-assisted development. The complete rewrite from deprecated API to browser automation, including all TypeScript code, documentation, error handling, and testing strategies, was generated through AI collaboration.
-
-### What This Demonstrates
-- ✅ **AI-First Development**: Complex browser automation and MCP integration built rapidly
-- ✅ **Real-world Problem Solving**: Adapted to Medium's API deprecation with working solution
-- ✅ **Production-Ready Code**: TypeScript, error handling, session management, comprehensive docs
-- ✅ **Community Standards**: Contributing guidelines, changelog, proper licensing
-
-### Current Status & Limitations
-- ✅ **Functional**: Works well in Claude MCP integration for core features
-- ⚠️ **Google Login Sessions**: Couldn't solve persistent Google login sessions (use email/password instead)
-- ⚠️ **Short Development Time**: Rapid development may have overlooked edge cases
-- ⚠️ **Medium UI Changes**: Selectors may break if Medium updates their interface
-
-### Honest Assessment
-This tool is **useful and functional** for AI-powered content workflows, but comes with the inherent limitations of:
-- **Rapid AI development** - may miss nuanced edge cases that human developers would catch
-- **Browser automation complexity** - dependent on Medium's website structure
-- **Session management challenges** - Google's anti-automation measures
-
-### Feedback Welcome
-Given the accelerated AI development process, **I welcome any feedback, bug reports, or improvements**. This serves as both a working tool and a demonstration of AI development capabilities and limitations.
-
-**Use at your own discretion** - this is provided "as-is" with the understanding that rapid AI development, while powerful, may not cover all production scenarios.
-
 ---
 
 **Note**: This is an unofficial tool and is not affiliated with Medium. Use responsibly and in accordance with Medium's Terms of Service.
