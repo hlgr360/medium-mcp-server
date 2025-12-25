@@ -100,52 +100,29 @@ export class BrowserMediumClient {
     const hasSession = existsSync(this.sessionPath);
 
     if (hasSession) {
-      // If we have a session, check if it's still valid by going to Medium homepage
-      console.error('💾 Found existing session file, testing login status...');
-      await this.page.goto('https://medium.com');
-      await this.page.waitForLoadState('networkidle');
-
-      // Check if we're logged in by looking for user-specific elements
-      const loginSelectors = [
-        '[data-testid="headerUserIcon"]', // User profile icon (correct as of Dec 2024)
-        '[data-testid="headerWriteButton"]', // Write button only appears when logged in
-        '[data-testid="headerNotificationButton"]', // Notifications button
-        'button[aria-label*="user"]', // Generic user button selector
-        '[data-testid="headerUserButton"]', // Legacy selector (keep as fallback)
-        '.avatar',
-        '[data-testid="user-menu"]',
-        'img[alt*="avatar"]',
-        '[data-testid="write-button"]', // Legacy write button
-        'a[href="/me/stories"]'
-      ];
-
-      let isLoggedIn = false;
-      for (const selector of loginSelectors) {
-        try {
-          await this.page.waitForSelector(selector, { timeout: 3000 });
-          console.error(`✅ Login detected using selector: ${selector}`);
-          isLoggedIn = true;
-          break;
-        } catch {
-          // Try next selector
-        }
-      }
-
-      if (isLoggedIn) {
-        console.error('✅ Already logged in to Medium');
-        await this.saveSession();
-        return true;
-      }
-
-      console.error('⚠️  Session expired, need to re-authenticate');
+      console.error('💾 Found existing session file, checking if still valid...');
     } else {
       console.error('🔐 No session file found, need to login');
     }
 
-    // No session or session expired - go directly to login page
-    console.error('🌐 Opening login page...');
+    // Smart approach: Navigate to /m/signin regardless of session status
+    // If already logged in, Medium will auto-redirect to homepage
+    // If not logged in, we stay on /m/signin (ready for login)
+    console.error('🌐 Navigating to login page to check session...');
     await this.page.goto('https://medium.com/m/signin');
     await this.page.waitForLoadState('networkidle');
+
+    // Check if we got redirected (means we're already logged in)
+    const currentUrl = this.page.url();
+    if (!currentUrl.includes('/m/signin')) {
+      // We got redirected away from login page - we're logged in!
+      console.error(`✅ Already logged in (redirected to ${currentUrl})`);
+      await this.saveSession();
+      return true;
+    }
+
+    // Still on login page - need to login
+    console.error('⏳ On login page, waiting for authentication...');
 
     // Wait for user to complete login
     console.error('⏳ Waiting for you to complete login in the browser...');
