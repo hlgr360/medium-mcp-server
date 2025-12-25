@@ -437,8 +437,22 @@ describe('BrowserMediumClient Integration Tests', () => {
       await client.initialize();
 
       mockPage.evaluate = jest.fn().mockResolvedValue([
-        'https://medium.com/result-1',
-        'https://medium.com/result-2'
+        {
+          title: 'TypeScript Guide',
+          content: 'TypeScript testing guide',
+          url: 'https://medium.com/result-1',
+          publishDate: '2024-01-01',
+          tags: ['typescript'],
+          claps: 10
+        },
+        {
+          title: 'Testing Guide',
+          content: 'Testing best practices',
+          url: 'https://medium.com/result-2',
+          publishDate: '2024-01-02',
+          tags: ['testing'],
+          claps: 20
+        }
       ]);
 
       const results = await client.searchMediumArticles(['typescript', 'testing']);
@@ -451,6 +465,7 @@ describe('BrowserMediumClient Integration Tests', () => {
       expect(searchUrl).toBeDefined();
       expect(searchUrl[0]).toContain('typescript');
       expect(results).toHaveLength(2);
+      expect(results[0].url).toContain('medium.com');
     });
 
     test('should extract article URLs correctly', async () => {
@@ -458,14 +473,28 @@ describe('BrowserMediumClient Integration Tests', () => {
       await client.initialize();
 
       mockPage.evaluate = jest.fn().mockResolvedValue([
-        'https://medium.com/@author/article-1',
-        'https://medium.com/publication/article-2'
+        {
+          title: 'Article 1',
+          content: 'Content 1',
+          url: 'https://medium.com/@author/article-1',
+          publishDate: '2024-01-01',
+          tags: [],
+          claps: 0
+        },
+        {
+          title: 'Article 2',
+          content: 'Content 2',
+          url: 'https://medium.com/publication/article-2',
+          publishDate: '2024-01-02',
+          tags: [],
+          claps: 0
+        }
       ]);
 
       const results = await client.searchMediumArticles(['jest']);
 
-      expect(results[0]).toMatch(/^https:\/\/medium\.com\//);
-      expect(results[1]).toMatch(/^https:\/\/medium\.com\//);
+      expect(results[0].url).toMatch(/^https:\/\/medium\.com\//);
+      expect(results[1].url).toMatch(/^https:\/\/medium\.com\//);
     });
 
     test('should handle no results gracefully', async () => {
