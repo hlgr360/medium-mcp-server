@@ -303,60 +303,36 @@ export class BrowserMediumClient {
 
   async getArticleContent(url: string, requireLogin: boolean = true): Promise<string> {
     if (!this.page) throw new Error('Browser not initialized');
-    
+
     console.error(`📖 Fetching article content from: ${url}`);
-    
-    // Check if we have a saved session first
-    let isLoggedIn = false;
-    if (existsSync(this.sessionPath)) {
-      console.error('💾 Found saved session, checking if still valid...');
-      
-      // Quick check: try to access Medium homepage and look for login indicators
-      try {
-        await this.page.goto('https://medium.com');
-        await this.page.waitForLoadState('networkidle');
-        
-        // Try to find login indicators quickly
-        const loginIndicators = [
-          '[data-testid="headerUserIcon"]',
-          '[data-testid="headerWriteButton"]',
-          '[data-testid="headerNotificationButton"]',
-          'button[aria-label*="user"]'
-        ];
-        
-        for (const selector of loginIndicators) {
-          try {
-            await this.page.waitForSelector(selector, { timeout: 2000 });
-            console.error('✅ Session is still valid, user is logged in');
-            isLoggedIn = true;
-            break;
-          } catch {
-            // Try next selector
-          }
-        }
-      } catch (error) {
-        console.error('⚠️  Could not verify session validity');
-      }
-    }
-    
-    if (!isLoggedIn && requireLogin) {
-      console.error('🔐 Not logged in. Attempting login for full content access...');
+
+    // Trust that session was already validated during initialization
+    // If session exists, assume we're logged in (validated by validateSessionFast earlier)
+    let isLoggedIn = this.isAuthenticatedSession;
+
+    if (isLoggedIn) {
+      console.error('✅ Using authenticated session for full content access');
+    } else if (requireLogin) {
+      console.error('🔐 No authenticated session. Attempting login for full content access...');
       isLoggedIn = await this.ensureLoggedIn();
-    } else if (!isLoggedIn && !requireLogin) {
-      console.error('🔓 Skipping login as requested. Will get preview content only.');
-    }
-    
-    if (!isLoggedIn) {
-      console.error('⚠️  Warning: Login failed or skipped. You may only get partial content (preview).');
     } else {
-      console.error('✅ Ready to fetch full article content with login session');
+      console.error('🔓 No login required. Will get preview content only.');
+    }
+
+    if (!isLoggedIn && requireLogin) {
+      console.error('⚠️  Warning: Login failed. You may only get partial content (preview).');
     }
     
     try {
       console.error(`🌐 Navigating to article: ${url}`);
-      await this.page.goto(url, { waitUntil: 'networkidle' });
-      
-      // Wait a bit more for dynamic content
+      // Use 'domcontentloaded' instead of 'networkidle' - more reliable for heavy pages
+      // with lots of tracking/analytics that may never reach networkidle
+      await this.page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000 // 60 second timeout for slow connections
+      });
+
+      // Wait a bit for dynamic content to load
       await this.page.waitForTimeout(3000);
       
       console.error('📄 Page loaded, extracting content...');
