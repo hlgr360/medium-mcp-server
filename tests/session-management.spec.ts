@@ -7,7 +7,7 @@ import { join } from 'path';
  * Test suite for session persistence functionality
  */
 test.describe('Session Management', () => {
-  const sessionPath = join(process.cwd(), 'medium-session.json');
+  const sessionPath = join(__dirname, '..', 'medium-session.json');
   let client: BrowserMediumClient;
 
   test.beforeEach(() => {

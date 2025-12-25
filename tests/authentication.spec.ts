@@ -7,7 +7,7 @@ import { join } from 'path';
  * Test suite for authentication and session validation
  */
 test.describe('Authentication', () => {
-  const sessionPath = join(process.cwd(), 'medium-session.json');
+  const sessionPath = join(__dirname, '..', 'medium-session.json');
   let client: BrowserMediumClient;
 
   test.beforeEach(() => {
