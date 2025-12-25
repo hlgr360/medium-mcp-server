@@ -138,7 +138,7 @@ Response → JSON → MCP Client
 - Navigates to `https://medium.com/me` and checks for redirect to login page
 - Much faster than fragile DOM selector-based validation
 
-**Login Flow Optimization (Dec 2024)**:
+**Login Flow Optimization (v1.2, Dec 2025)**:
 - **Smart login check**: Always navigates to `/m/signin` first (regardless of session status)
   - If already logged in → Medium auto-redirects to homepage (session valid!)
   - If not logged in → Stays on `/m/signin` (ready for login)
@@ -190,11 +190,11 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 - **Speed**: Operations take 10-30 seconds (browser automation overhead). Browser launches fresh for each tool invocation and closes afterward.
 - **Browser Lifecycle**: Browser is NOT persistent - it opens for each operation and closes when done. This saves resources but adds 5-10s startup time per operation.
 - **Selector Fragility**: Medium UI changes will break selectors - use multiple fallback strategies
-  - **Latest Update (Dec 2024)**: Medium changed `data-testid` selectors:
+  - **Latest Update (v1.2, Dec 2025)**: Medium changed `data-testid` selectors:
     - `headerUserButton` → `headerUserIcon` (user profile button)
     - `write-button` → `headerWriteButton` (write button)
     - Added `headerNotificationButton` as additional login indicator
-  - **Debugging UI Changes**: Use `src/debug-login.ts` to analyze current page structure and find new selectors
+  - **Debugging UI Changes**: Use `scripts/debug-login.ts` to analyze current page structure and find new selectors
 - **Google Login Issues**: Email/password login preferred; Google OAuth may have session persistence issues
 - **Headless Mode**: Browser auto-switches to headless mode after initial login. Non-headless only for `login-to-medium` tool.
 - **Session Validation**: Fast validation check (5s) runs before each operation to ensure session is still valid
@@ -203,8 +203,8 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 
 - **When adding new tools**: Follow the pattern in index.ts (Zod schema validation, error wrapping)
 - **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
-  - **Current login selectors (Dec 2024)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
-  - **Debugging selector changes**: Run `npm run build && node dist/debug-login.js` to analyze current page structure
+  - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
+  - **Debugging selector changes**: Run `npx ts-node scripts/debug-login.ts` to analyze current page structure
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
 - **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues

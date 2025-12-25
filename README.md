@@ -176,18 +176,18 @@ Claude: Uses publish-article tool →
 - **Slow performance**: Browser automation takes 10-30 seconds per operation
 
 ### Login Detection Issues
-- **Browser doesn't close after login** (Fixed Dec 2024): Update to latest version - Medium changed their UI selectors
+- **Browser doesn't close after login** (Fixed in v1.2): Update to latest version - Medium changed their UI selectors
 - **Session file not created**: Ensure you complete the full login (see profile icon appear)
-- **Debug login detection**: Run `npm run build && node dist/debug-login.js` to analyze current page selectors
-- **Current selectors (Dec 2024)**:
+- **Debug login detection**: Run `npx ts-node scripts/debug-login.ts` to analyze current page selectors
+- **Current selectors (v1.2)**:
   - User icon: `[data-testid="headerUserIcon"]`
   - Write button: `[data-testid="headerWriteButton"]`
   - Notifications: `[data-testid="headerNotificationButton"]`
 
 ### Medium UI Changes
 - **Selectors outdated**: Medium occasionally changes their website structure
-  - **Latest update**: December 2024 - Changed `headerUserButton` → `headerUserIcon`
-  - **Solution**: Run debug script to find new selectors: `node dist/debug-login.js`
+  - **Latest update**: v1.2 (December 2025) - Changed `headerUserButton` → `headerUserIcon`
+  - **Solution**: Run debug script to find new selectors: `npx ts-node scripts/debug-login.ts`
 - **Login blocked**: Use your regular browser to login first, then try again
 
 ### Common Errors
@@ -196,7 +196,7 @@ Claude: Uses publish-article tool →
 - **`Element not found`**: Medium may have changed their UI - check debug script output
 - **`EROFS: read-only file system`**: Session file can't be written
   - Check logs: `tail -f ~/Library/Logs/Claude/mcp*.log | grep "Working directory"`
-  - If working directory is `/`, update to latest version (fixed in Dec 2024)
+  - If working directory is `/`, update to latest version (fixed in v1.2)
   - Session file now uses project directory instead of working directory
 - **Repeated login prompts**: Session not persisting
   - Check if `medium-session.json` exists in project root

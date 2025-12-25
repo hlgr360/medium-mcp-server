@@ -18,7 +18,7 @@ class MediumMcpServer {
     // Create MCP server instance
     this.server = new McpServer({
       name: "medium-mcp-server",
-      version: "2.0.0"
+      version: "1.2.0"
     });
 
     this.registerTools();
