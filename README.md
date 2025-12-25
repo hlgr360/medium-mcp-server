@@ -71,18 +71,24 @@ npm start
 ```
 
 #### Add to Claude Configuration
-Add this to your Claude MCP configuration:
+Add this to your Claude MCP configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
 ```json
 {
   "mcpServers": {
     "medium-mcp": {
       "command": "node",
-      "args": ["path/to/medium-mcp-server/dist/index.js"],
-      "cwd": "path/to/medium-mcp-server"
+      "args": ["/absolute/path/to/medium-mcp-server/dist/index.js"]
     }
   }
 }
 ```
+
+**Important Notes:**
+- Use **absolute paths** (not relative paths like `~/` or `path/to/`)
+- The `cwd` parameter is **not reliable** in Claude Desktop (working directory may be `/`)
+- Session file is stored in the project directory (`medium-session.json`)
+- Example: `"/Users/yourusername/repos/medium-mcp-server/dist/index.js"`
 
 ## Available MCP Tools
 
@@ -185,9 +191,17 @@ Claude: Uses publish-article tool →
 - **Login blocked**: Use your regular browser to login first, then try again
 
 ### Common Errors
-- `Browser not initialized`: Restart the server
-- `Login timeout`: Increase timeout in browser-client.ts (default: 5 minutes)
-- `Element not found`: Medium may have changed their UI - check debug script output
+- **`Browser not initialized`**: Restart the server
+- **`Login timeout`**: Increase timeout in browser-client.ts (default: 5 minutes)
+- **`Element not found`**: Medium may have changed their UI - check debug script output
+- **`EROFS: read-only file system`**: Session file can't be written
+  - Check logs: `tail -f ~/Library/Logs/Claude/mcp*.log | grep "Working directory"`
+  - If working directory is `/`, update to latest version (fixed in Dec 2024)
+  - Session file now uses project directory instead of working directory
+- **Repeated login prompts**: Session not persisting
+  - Check if `medium-session.json` exists in project root
+  - Verify file has cookies: `cat medium-session.json | jq '.cookies | length'`
+  - Check file permissions: `ls -l medium-session.json`
 
 ## Development
 

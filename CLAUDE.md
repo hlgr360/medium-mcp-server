@@ -147,12 +147,18 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
   "mcpServers": {
     "medium-mcp": {
       "command": "node",
-      "args": ["<absolute-path-to-repo>/dist/index.js"],
-      "cwd": "<absolute-path-to-repo>"
+      "args": ["/absolute/path/to/medium-mcp-server/dist/index.js"]
     }
   }
 }
 ```
+
+**Important Configuration Notes:**
+- **Use absolute paths only** - Do NOT use `~/` or relative paths
+- **Example:** `"/Users/yourusername/repos/medium-mcp-server/dist/index.js"`
+- **Do NOT use `cwd` parameter** - It's not reliable in Claude Desktop (working directory may be `/`)
+- **Session file location:** Automatically stored in project root as `medium-session.json`
+- **Why this matters:** The server was failing to save sessions because Claude Desktop runs with `cwd=/` (root directory, which is read-only on macOS)
 
 ## Important Notes
 
