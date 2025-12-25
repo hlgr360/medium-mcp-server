@@ -96,18 +96,16 @@ export class BrowserMediumClient {
   async ensureLoggedIn(): Promise<boolean> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    // First check if we have a saved session
-    if (existsSync(this.sessionPath)) {
-      console.error('💾 Found existing session file, testing login status...');
-    }
+    // Check if we have a saved session
+    const hasSession = existsSync(this.sessionPath);
 
-    // Try a simpler page first to check login status
-    await this.page.goto('https://medium.com');
-    await this.page.waitForLoadState('networkidle');
-    
-    // Check if we're logged in by looking for user-specific elements
-    try {
-      // Try multiple selectors for logged-in state
+    if (hasSession) {
+      // If we have a session, check if it's still valid by going to Medium homepage
+      console.error('💾 Found existing session file, testing login status...');
+      await this.page.goto('https://medium.com');
+      await this.page.waitForLoadState('networkidle');
+
+      // Check if we're logged in by looking for user-specific elements
       const loginSelectors = [
         '[data-testid="headerUserIcon"]', // User profile icon (correct as of Dec 2024)
         '[data-testid="headerWriteButton"]', // Write button only appears when logged in
@@ -120,7 +118,7 @@ export class BrowserMediumClient {
         '[data-testid="write-button"]', // Legacy write button
         'a[href="/me/stories"]'
       ];
-      
+
       let isLoggedIn = false;
       for (const selector of loginSelectors) {
         try {
@@ -132,44 +130,46 @@ export class BrowserMediumClient {
           // Try next selector
         }
       }
-      
+
       if (isLoggedIn) {
         console.error('✅ Already logged in to Medium');
         await this.saveSession();
         return true;
-      } else {
-        throw new Error('Not logged in');
       }
-    } catch {
-      console.error('❌ Not logged in. Please log in manually...');
-      
-      // Navigate to login page
-      await this.page.goto('https://medium.com/m/signin');
-      
-      // Wait for user to complete login
-      console.error('⏳ Waiting for you to complete login in the browser...');
-      console.error('');
-      console.error('🔐 LOGIN INSTRUCTIONS:');
-      console.error('   1. In the opened browser, choose "Sign in with email"');
-      console.error('   2. Use your Medium email/password (avoid Google login if possible)');
-      console.error('   3. If you must use Google login:');
-      console.error('      - Try clicking "Sign in with Google"');
-      console.error('      - If blocked, manually navigate to medium.com in a regular browser');
-      console.error('      - Login there first, then come back to this automated browser');
-      console.error('   4. Complete any 2FA if prompted');
-      console.error('   5. The script will continue automatically once logged in...');
-      console.error('');
-      
-      // Wait for successful login (user button appears)
-      try {
-        await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: 300000 }); // 5 minutes
-        console.error('✅ Login successful!');
-        await this.saveSession();
-        return true;
-      } catch (error) {
-        console.error('❌ Login timeout. Please try again.');
-        return false;
-      }
+
+      console.error('⚠️  Session expired, need to re-authenticate');
+    } else {
+      console.error('🔐 No session file found, need to login');
+    }
+
+    // No session or session expired - go directly to login page
+    console.error('🌐 Opening login page...');
+    await this.page.goto('https://medium.com/m/signin');
+    await this.page.waitForLoadState('networkidle');
+
+    // Wait for user to complete login
+    console.error('⏳ Waiting for you to complete login in the browser...');
+    console.error('');
+    console.error('🔐 LOGIN INSTRUCTIONS:');
+    console.error('   1. In the opened browser, choose "Sign in with email"');
+    console.error('   2. Use your Medium email/password (avoid Google login if possible)');
+    console.error('   3. If you must use Google login:');
+    console.error('      - Try clicking "Sign in with Google"');
+    console.error('      - If blocked, manually navigate to medium.com in a regular browser');
+    console.error('      - Login there first, then come back to this automated browser');
+    console.error('   4. Complete any 2FA if prompted');
+    console.error('   5. The script will continue automatically once logged in...');
+    console.error('');
+
+    // Wait for successful login (user button appears)
+    try {
+      await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: 300000 }); // 5 minutes
+      console.error('✅ Login successful!');
+      await this.saveSession();
+      return true;
+    } catch (error) {
+      console.error('❌ Login timeout. Please try again.');
+      return false;
     }
   }
 

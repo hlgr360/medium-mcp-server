@@ -115,6 +115,12 @@ Response → JSON → MCP Client
 - Navigates to `https://medium.com/me` and checks for redirect to login page
 - Much faster than fragile DOM selector-based validation
 
+**Login Flow Optimization (Dec 2024)**:
+- **No session file**: Goes directly to login page (no delay)
+- **Session file exists**: Checks if session is still valid on medium.com, then logs in if needed
+- **Session expired**: Goes directly to login page
+- This prevents the confusing 10-20 second delay where users see Medium homepage before being redirected to login
+
 **Headless Mode**:
 - Browser automatically uses headless mode when valid session exists
 - Non-headless mode only for initial login and when `login-to-medium` is called
