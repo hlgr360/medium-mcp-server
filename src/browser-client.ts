@@ -32,6 +32,35 @@ export class BrowserMediumClient {
    * @param forceHeadless - Optional parameter to force headless mode. If not provided, uses shouldUseHeadlessMode().
    */
   async initialize(forceHeadless?: boolean): Promise<void> {
+    // IMPORTANT: Check session file FIRST to set isAuthenticatedSession
+    // This must happen BEFORE determining headless mode
+    const contextOptions: any = {
+      viewport: { width: 1280, height: 720 },
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    };
+
+    // Pre-validate session file to set isAuthenticatedSession flag
+    if (existsSync(this.sessionPath)) {
+      try {
+        const sessionData = JSON.parse(readFileSync(this.sessionPath, 'utf8'));
+        // Validate session before loading (check cookie expiry)
+        if (this.validateStorageState(sessionData)) {
+          contextOptions.storageState = sessionData;
+          this.isAuthenticatedSession = true;
+        } else {
+          this.isAuthenticatedSession = false;
+        }
+      } catch (error) {
+        this.isAuthenticatedSession = false;
+      }
+    }
+
+    // NOW determine headless mode (after isAuthenticatedSession is set)
+    const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
+
     // Diagnostic logging
     console.error('═══════════════════════════════════════');
     console.error('🔧 INITIALIZE DIAGNOSTICS');
@@ -39,8 +68,6 @@ export class BrowserMediumClient {
     console.error(`   Session path: ${this.sessionPath}`);
     console.error(`   Session file exists: ${existsSync(this.sessionPath)}`);
     console.error(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
-
-    const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
     console.error(`   Headless mode: ${headlessMode}`);
     console.error('═══════════════════════════════════════\n');
 
@@ -59,33 +86,11 @@ export class BrowserMediumClient {
       ]
     });
 
-    // Load existing session if available
-    const contextOptions: any = {
-      viewport: { width: 1280, height: 720 },
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9'
-      }
-    };
-
-    // Load and validate existing session if available
-    if (existsSync(this.sessionPath)) {
-      try {
-        const sessionData = JSON.parse(readFileSync(this.sessionPath, 'utf8'));
-
-        // Validate session before loading (check cookie expiry)
-        if (this.validateStorageState(sessionData)) {
-          contextOptions.storageState = sessionData;
-          this.isAuthenticatedSession = true;
-          console.error('✅ Loaded valid session from file');
-        } else {
-          console.error('⚠️  Session file has expired cookies, will re-authenticate');
-          this.isAuthenticatedSession = false;
-        }
-      } catch (error) {
-        console.error('❌ Failed to load session:', error);
-        this.isAuthenticatedSession = false;
-      }
+    // Log session loading result
+    if (this.isAuthenticatedSession) {
+      console.error('✅ Loaded valid session from file');
+    } else if (existsSync(this.sessionPath)) {
+      console.error('⚠️  Session file has expired cookies, will re-authenticate');
     }
 
     this.context = await this.browser.newContext(contextOptions);
