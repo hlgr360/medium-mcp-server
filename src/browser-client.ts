@@ -124,6 +124,17 @@ export class BrowserMediumClient {
     // Still on login page - need to login
     console.error('⏳ On login page, waiting for authentication...');
 
+    // Check if browser is in headless mode - if so, we need to restart in visible mode
+    const isHeadless = this.browser?.contexts()[0]?.browser()?.isConnected();
+    if (this.isAuthenticatedSession && this.browser) {
+      // We're in headless mode but need user login - restart browser in visible mode
+      console.error('⚠️  Browser in headless mode but login required - restarting in visible mode...');
+      await this.close();
+      await this.initialize(false); // Force non-headless
+      await this.page!.goto('https://medium.com/m/signin');
+      await this.page!.waitForLoadState('networkidle');
+    }
+
     // Wait for user to complete login
     console.error('⏳ Waiting for you to complete login in the browser...');
     console.error('');
