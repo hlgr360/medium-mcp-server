@@ -22,7 +22,9 @@ export class BrowserMediumClient {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
-  private sessionPath = join(process.cwd(), 'medium-session.json');
+  // Use __dirname to get the script's directory, then go up to project root
+  // This ensures session file is in project directory, not working directory
+  private sessionPath = join(__dirname, '..', 'medium-session.json');
   private isAuthenticatedSession: boolean = false;
 
   /**
