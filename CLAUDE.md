@@ -29,8 +29,10 @@ npm run dev
 ```
 
 ### Testing
+
+#### End-to-End Tests (Playwright)
 ```bash
-# Run all tests with Playwright Test
+# Run all E2E tests with Playwright Test
 npm test
 
 # Run tests with visible browser
@@ -43,10 +45,31 @@ npm run test:ui
 npm run test:report
 ```
 
-**Test Coverage**:
+**E2E Test Coverage**:
 - **Session Management**: Cookie validation, session persistence, expiry detection
 - **Browser Lifecycle**: Initialize/close cycles, headless mode switching
 - **Authentication**: Fast session validation, login timeout handling
+
+#### Unit/Integration Tests (Jest)
+```bash
+# Run all Jest tests
+npm run test:unit
+
+# Run tests in watch mode
+npm run test:unit:watch
+
+# Generate coverage report
+npm run test:unit:coverage
+
+# Run all tests (Jest + Playwright)
+npm run test:all
+```
+
+**Jest Test Coverage**:
+- **Unit Tests (29)**: Cookie validation, expiry detection, headless mode logic
+- **Integration Tests (53)**: BrowserMediumClient methods with mocked Playwright, MCP tool handlers
+- **Total**: 82 tests, ~47% code coverage
+- **Coverage**: Session management, browser lifecycle, validation logic, tool handlers
 
 ## Architecture
 
@@ -192,6 +215,104 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 - Dependent on Medium's website structure (selectors may break)
 - Google login session persistence unreliable (documented AI development limitation)
 - No support for editing existing articles (only new article publishing)
+
+## Testing Strategy
+
+This project uses a **multi-layered testing approach** to ensure reliability while acknowledging the challenges of testing browser automation code.
+
+### Test Layers
+
+1. **Unit Tests (Jest)** - Pure logic, validation, cookie handling
+   - Cookie expiry validation
+   - Session validation logic
+   - Headless mode determination
+   - **Fast execution**: ~1s total
+
+2. **Integration Tests (Jest + Mocks)** - BrowserMediumClient methods with mocked Playwright
+   - Browser initialization flow
+   - Session loading and saving
+   - Method parameter validation
+   - MCP tool handler logic
+   - **Fast execution**: ~1.5s total
+
+3. **E2E Tests (Playwright)** - Real browser automation for critical flows
+   - Full login flow with visible browser
+   - Session persistence across browser restarts
+   - Article publishing end-to-end
+   - **Slower execution**: 30-60s per test
+
+### Test Organization
+
+```
+src/
+├── __tests__/
+│   ├── unit/                    # Pure unit tests (29 tests)
+│   │   ├── validation.test.ts   # Cookie validation logic
+│   │   ├── cookie-utils.test.ts # Cookie expiry detection
+│   │   └── headless-mode.test.ts # Headless mode logic
+│   ├── integration/             # Integration tests (53 tests)
+│   │   ├── browser-client.test.ts # BrowserMediumClient methods
+│   │   └── mcp-tools.test.ts     # MCP tool handlers
+│   └── helpers/                 # Test utilities
+│       ├── mock-playwright.ts   # Playwright mock factory
+│       ├── fixtures.ts          # Test data (sessions, articles)
+│       └── matchers.ts          # Custom Jest matchers
+tests/                           # Playwright E2E tests (18 tests)
+```
+
+### Coverage Philosophy
+
+**Current Coverage: ~47% overall, 49% browser-client.ts**
+
+This coverage level is **appropriate for browser automation code** because:
+
+- ✅ **Core logic is well-tested**: Session management, validation, lifecycle (all >80%)
+- ✅ **Integration points are tested**: All MCP tool handlers have tests
+- ⚠️ **Complex UI automation is under-tested**: DOM parsing, selector fallbacks (30-40%)
+- ⚠️ **Browser interaction is hard to mock**: Login flow, content extraction, search parsing
+
+**Why NOT aiming for 80%+ coverage:**
+- DOM selector strategies have many fallback paths (100+ branches)
+- Playwright page.evaluate() logic is complex to mock meaningfully
+- Testing mocked selectors provides little value (fragile, low signal)
+- E2E tests provide better validation for UI automation
+
+**Coverage Targets:**
+- **Short term**: Maintain ~50% (current baseline)
+- **Medium term**: 60% statements, 50% branches (realistic for browser code)
+- **Long term**: Focus on test quality over quantity
+
+### Testing Best Practices
+
+When adding new features:
+1. **Start with unit tests** for pure logic (validation, calculations)
+2. **Add integration tests** for method flows with mocked Playwright
+3. **Add E2E tests** only for critical user-facing flows
+4. **Don't mock complex DOM interactions** - use E2E or skip
+
+When debugging:
+- **Jest tests**: Fast iteration for logic bugs
+- **Playwright UI mode**: Visual debugging for selector issues
+- **Debug scripts**: `scripts/debug-login.ts` for analyzing page structure
+
+### Running Specific Test Suites
+
+```bash
+# Unit tests only (fast iteration)
+npm run test:unit -- src/__tests__/unit/
+
+# Integration tests only
+npm run test:unit -- src/__tests__/integration/
+
+# Specific test file
+npm run test:unit -- src/__tests__/unit/validation.test.ts
+
+# E2E tests only
+npm test
+
+# Everything
+npm run test:all
+```
 
 ## TypeScript Configuration
 

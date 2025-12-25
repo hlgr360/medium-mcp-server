@@ -215,8 +215,10 @@ src/
 ```
 
 ### Testing
+
+#### End-to-End Tests (Playwright)
 ```bash
-# Run all tests with Playwright Test
+# Run all E2E tests with Playwright Test
 npm test
 
 # Run tests with visible browser
@@ -227,19 +229,44 @@ npm run test:ui
 
 # View HTML test report
 npm run test:report
+```
 
+**E2E Test Coverage**:
+- Session persistence and cookie validation
+- Browser lifecycle management
+- Authentication and session validation
+- Headless mode switching
+
+#### Unit/Integration Tests (Jest)
+```bash
+# Run all Jest tests
+npm run test:unit
+
+# Run tests in watch mode
+npm run test:unit:watch
+
+# Generate coverage report
+npm run test:unit:coverage
+
+# Run all tests (Jest + Playwright)
+npm run test:all
+```
+
+**Unit/Integration Test Coverage**:
+- Cookie validation and expiry detection (29 unit tests)
+- BrowserMediumClient integration with mocked Playwright (32 tests)
+- MCP tool handler methods (21 tests)
+- **Total**: 82 Jest tests, 47% code coverage
+- **Coverage**: session management, browser lifecycle, validation logic
+
+#### Build & Run
+```bash
 # Build project
 npm run build
 
 # Run MCP server
 npm start
 ```
-
-**Test Coverage**:
-- Session persistence and cookie validation
-- Browser lifecycle management
-- Authentication and session validation
-- Headless mode switching
 
 ## Security Notes
 - ✅ **Local only** - No data sent to external servers
