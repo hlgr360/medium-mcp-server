@@ -12,7 +12,12 @@ async function simulateMcpServerBehavior() {
   console.log('🧪 Simulating EXACT MCP server behavior...\n');
 
   const sessionPath = join(process.cwd(), 'medium-session.json');
-  const testUrl = 'https://medium.com/@medium/welcome-to-medium-9e53ca408c48';
+
+  // Use two DIFFERENT articles to avoid caching issues
+  // Article 1: Standard medium.com domain
+  const testUrl1 = 'https://medium.com/data-science-collective/the-spacetime-of-large-language-models-6677c74a0fc3';
+  // Article 2: Custom domain (still hosted on Medium)
+  const testUrl2 = 'https://ai.gopubby.com/the-ai-math-silicon-valley-doesnt-want-you-to-learn-or-to-hear-e9adf9a4cce2';
 
   // Clean start
   if (existsSync(sessionPath)) {
@@ -56,8 +61,9 @@ async function simulateMcpServerBehavior() {
         }
       }
 
-      const content1 = await client1.getArticleContent(testUrl, true);
-      console.log(`✅ Got content: ${content1.length} characters\n`);
+      console.log(`\n📖 Reading Article 1: ${testUrl1.substring(0, 60)}...`);
+      const content1 = await client1.getArticleContent(testUrl1, true);
+      console.log(`✅ Got article 1 content: ${content1.length} characters\n`);
 
     } finally {
       // CRITICAL: Browser closes after operation (just like MCP server)
@@ -107,8 +113,9 @@ async function simulateMcpServerBehavior() {
         console.log('✅ Session valid - no re-login needed!\n');
       }
 
-      const content2 = await client2.getArticleContent(testUrl, true);
-      console.log(`✅ Got content: ${content2.length} characters\n`);
+      console.log(`\n📖 Reading Article 2 (custom domain): ${testUrl2.substring(0, 60)}...`);
+      const content2 = await client2.getArticleContent(testUrl2, true);
+      console.log(`✅ Got article 2 content: ${content2.length} characters\n`);
 
     } finally {
       console.log('🔒 Closing browser 2 (end of operation)');
