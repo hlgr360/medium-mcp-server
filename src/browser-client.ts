@@ -912,6 +912,9 @@ export class BrowserMediumClient {
       this.browser = null;
       this.context = null;
       this.page = null;
+      // Reset authentication state when browser closes
+      // This ensures fresh validation on next initialize()
+      this.isAuthenticatedSession = false;
     }
   }
 } 
