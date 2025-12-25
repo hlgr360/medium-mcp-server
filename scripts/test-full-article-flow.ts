@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from './browser-client';
+import { BrowserMediumClient } from '../src/browser-client';
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
