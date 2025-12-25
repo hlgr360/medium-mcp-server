@@ -106,8 +106,9 @@ export class BrowserMediumClient {
     }
 
     // Smart approach: Navigate to /m/signin regardless of session status
-    // If already logged in, Medium will auto-redirect to homepage
-    // If not logged in, we stay on /m/signin (ready for login)
+    // If already logged in, Medium might:
+    // 1. Auto-redirect to homepage, OR
+    // 2. Stay on /m/signin but show "welcome back" with login indicators visible
     console.error('🌐 Navigating to login page to check session...');
     await this.page.goto('https://medium.com/m/signin');
     await this.page.waitForLoadState('networkidle');
@@ -121,8 +122,41 @@ export class BrowserMediumClient {
       return true;
     }
 
-    // Still on login page - need to login
-    console.error('⏳ On login page, waiting for authentication...');
+    // Still on /m/signin - but check if we're already logged in
+    // (Medium sometimes shows "welcome back" without redirecting)
+    console.error('🔍 On signin page, checking if already logged in...');
+
+    // Wait a moment for any dynamic content to load
+    await this.page.waitForTimeout(2000);
+
+    const loginIndicators = [
+      '[data-testid="headerUserIcon"]',
+      '[data-testid="headerWriteButton"]',
+      '[data-testid="headerNotificationButton"]',
+      'button[aria-label*="user"]'
+    ];
+
+    for (const selector of loginIndicators) {
+      try {
+        await this.page.waitForSelector(selector, { timeout: 2000 });
+        console.error(`✅ Already logged in (found ${selector} on signin page)`);
+        await this.saveSession();
+        return true;
+      } catch {
+        // Try next selector
+      }
+    }
+
+    // Debug: Check what's actually on the page
+    const pageInfo = await this.page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.textContent?.trim());
+      const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(0, 10).map(el => el.getAttribute('data-testid'));
+      return { buttons, testIds, title: document.title, url: window.location.href };
+    });
+    console.error('📄 Page info:', JSON.stringify(pageInfo, null, 2));
+
+    // Definitely need to login
+    console.error('⏳ Not logged in, waiting for authentication...');
 
     // Check if browser is in headless mode - if so, we need to restart in visible mode
     const isHeadless = this.browser?.contexts()[0]?.browser()?.isConnected();
