@@ -802,17 +802,24 @@ export class BrowserMediumClient {
     const now = Date.now() / 1000; // Unix timestamp in seconds
 
     // Check if any critical authentication cookies are expired
+    // Only check CRITICAL auth cookies, not analytics/tracking cookies
     for (const cookie of storageState.cookies) {
-      // Check Medium-specific auth cookies
-      const isAuthCookie =
-        cookie.name.includes('sid') ||
-        cookie.name.includes('uid') ||
-        cookie.name.includes('session') ||
-        cookie.domain.includes('medium.com');
+      // Only check CRITICAL Medium authentication cookies
+      // Ignore analytics cookies (_ga, _gat, _gid), CloudFlare cookies, etc.
+      const isCriticalAuthCookie =
+        (cookie.name.includes('sid') && cookie.domain.includes('medium.com')) ||
+        (cookie.name.includes('uid') && cookie.domain.includes('medium.com')) ||
+        (cookie.name.toLowerCase().includes('session') && cookie.domain.includes('medium.com'));
 
-      if (isAuthCookie && cookie.expires) {
+      if (isCriticalAuthCookie && cookie.expires) {
+        // Skip session cookies (expires: -1 or 0 means no expiry)
+        if (cookie.expires <= 0) {
+          continue;
+        }
+
+        // Check if cookie is expired
         if (cookie.expires < now) {
-          console.error(`❌ Cookie expired: ${cookie.name} (expired ${new Date(cookie.expires * 1000).toISOString()})`);
+          console.error(`❌ Critical auth cookie expired: ${cookie.name} (expired ${new Date(cookie.expires * 1000).toISOString()})`);
           return false;
         }
       }
