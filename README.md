@@ -44,11 +44,8 @@ git clone https://github.com/jackyckma/medium-mcp-server.git
 # Navigate to the project directory
 cd medium-mcp-server
 
-# Install dependencies
+# Install dependencies (automatically installs Chromium browser via postinstall)
 npm install
-
-# Install browser for automation
-npx playwright install chromium
 
 # Build the project
 npm run build
@@ -169,6 +166,33 @@ Claude: Uses publish-article tool →
 ```
 
 ## Troubleshooting
+
+### Debugging MCP Server
+
+When experiencing issues with the MCP server, check the Claude Desktop logs:
+
+```bash
+# View all MCP server logs in real-time
+tail -f ~/Library/Logs/Claude/mcp*.log
+
+# Filter for specific information
+tail -f ~/Library/Logs/Claude/mcp*.log | grep "medium-mcp"
+tail -f ~/Library/Logs/Claude/mcp*.log | grep "Working directory"
+tail -f ~/Library/Logs/Claude/mcp*.log | grep "Session"
+
+# View recent errors
+tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
+```
+
+**Common log locations:**
+- **macOS**: `~/Library/Logs/Claude/mcp*.log`
+- **Windows**: `%APPDATA%\Claude\logs\mcp*.log`
+
+**What to look for in logs:**
+- Working directory (should be your project directory, not `/`)
+- Session file path and whether it exists
+- Browser initialization messages
+- Error messages from Playwright or Medium automation
 
 ### Browser Issues
 - **Browser won't open**: Check if Chromium is installed (`npx playwright install chromium`)
