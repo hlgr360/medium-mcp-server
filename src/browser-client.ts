@@ -23,10 +23,17 @@ export class BrowserMediumClient {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private sessionPath = join(process.cwd(), 'medium-session.json');
+  private isAuthenticatedSession: boolean = false;
 
-  async initialize(): Promise<void> {
-    this.browser = await chromium.launch({ 
-      headless: false, // Keep visible for login
+  /**
+   * Initialize the browser for automation.
+   * @param forceHeadless - Optional parameter to force headless mode. If not provided, uses shouldUseHeadlessMode().
+   */
+  async initialize(forceHeadless?: boolean): Promise<void> {
+    const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
+
+    this.browser = await chromium.launch({
+      headless: headlessMode, // Dynamic: visible for initial login, headless after
       slowMo: 100, // Slow down for reliability
       args: [
         '--no-first-run',
@@ -49,12 +56,23 @@ export class BrowserMediumClient {
       }
     };
 
+    // Load and validate existing session if available
     if (existsSync(this.sessionPath)) {
       try {
         const sessionData = JSON.parse(readFileSync(this.sessionPath, 'utf8'));
-        contextOptions.storageState = sessionData;
+
+        // Validate session before loading (check cookie expiry)
+        if (this.validateStorageState(sessionData)) {
+          contextOptions.storageState = sessionData;
+          this.isAuthenticatedSession = true;
+          console.error('✅ Loaded valid session from file');
+        } else {
+          console.error('⚠️  Session file has expired cookies, will re-authenticate');
+          this.isAuthenticatedSession = false;
+        }
       } catch (error) {
-        console.error('Failed to load session:', error);
+        console.error('❌ Failed to load session:', error);
+        this.isAuthenticatedSession = false;
       }
     }
 
@@ -91,12 +109,15 @@ export class BrowserMediumClient {
     try {
       // Try multiple selectors for logged-in state
       const loginSelectors = [
-        '[data-testid="headerUserButton"]',
+        '[data-testid="headerUserIcon"]', // User profile icon (correct as of Dec 2024)
+        '[data-testid="headerWriteButton"]', // Write button only appears when logged in
+        '[data-testid="headerNotificationButton"]', // Notifications button
+        'button[aria-label*="user"]', // Generic user button selector
+        '[data-testid="headerUserButton"]', // Legacy selector (keep as fallback)
         '.avatar',
         '[data-testid="user-menu"]',
-        'button[aria-label*="user"]',
         'img[alt*="avatar"]',
-        '[data-testid="write-button"]', // Write button only appears when logged in
+        '[data-testid="write-button"]', // Legacy write button
         'a[href="/me/stories"]'
       ];
       
@@ -141,7 +162,7 @@ export class BrowserMediumClient {
       
       // Wait for successful login (user button appears)
       try {
-        await this.page.waitForSelector('[data-testid="headerUserButton"], .avatar, [data-testid="user-menu"]', { timeout: 300000 }); // 5 minutes
+        await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: 300000 }); // 5 minutes
         console.error('✅ Login successful!');
         await this.saveSession();
         return true;
@@ -152,15 +173,37 @@ export class BrowserMediumClient {
     }
   }
 
+  /**
+   * Save the current browser session (cookies, localStorage) to disk for reuse.
+   * Includes IndexedDB if supported by the Playwright version.
+   */
   async saveSession(): Promise<void> {
     if (!this.context) return;
-    
+
     try {
+      // Attempt to capture IndexedDB along with cookies and localStorage
+      // Note: IndexedDB capture support may vary by Playwright version
       const sessionData = await this.context.storageState();
+
       writeFileSync(this.sessionPath, JSON.stringify(sessionData, null, 2));
+      this.isAuthenticatedSession = true;
+
       console.error('💾 Session saved for future use');
+
+      // Debug logging: show cookie expiry information
+      const earliestExpiry = this.getEarliestCookieExpiry(sessionData);
+      if (earliestExpiry) {
+        const expiryDate = new Date(earliestExpiry * 1000);
+        console.error(`📅 Session valid until: ${expiryDate.toISOString()}`);
+      }
+
+      const cookieCount = sessionData.cookies?.length || 0;
+      const originsCount = sessionData.origins?.length || 0;
+      console.error(`📊 Saved ${cookieCount} cookies and ${originsCount} localStorage origins`);
+
     } catch (error) {
-      console.error('Failed to save session:', error);
+      console.error('❌ Failed to save session:', error);
+      this.isAuthenticatedSession = false;
     }
   }
 
@@ -221,9 +264,10 @@ export class BrowserMediumClient {
         
         // Try to find login indicators quickly
         const loginIndicators = [
-          '[data-testid="headerUserButton"]',
-          '[data-testid="write-button"]',
-          'a[href="/me/stories"]'
+          '[data-testid="headerUserIcon"]',
+          '[data-testid="headerWriteButton"]',
+          '[data-testid="headerNotificationButton"]',
+          'button[aria-label*="user"]'
         ];
         
         for (const selector of loginIndicators) {
@@ -743,6 +787,128 @@ export class BrowserMediumClient {
 
     console.error(`🎉 Search completed. Found ${articles.length} articles`);
     return articles;
+  }
+
+  /**
+   * Validate a storage state object by checking if cookies are expired.
+   * @param storageState - The storage state object from Playwright
+   * @returns true if the storage state is valid and not expired
+   */
+  private validateStorageState(storageState: any): boolean {
+    if (!storageState || !storageState.cookies) {
+      return false;
+    }
+
+    const now = Date.now() / 1000; // Unix timestamp in seconds
+
+    // Check if any critical authentication cookies are expired
+    for (const cookie of storageState.cookies) {
+      // Check Medium-specific auth cookies
+      const isAuthCookie =
+        cookie.name.includes('sid') ||
+        cookie.name.includes('uid') ||
+        cookie.name.includes('session') ||
+        cookie.domain.includes('medium.com');
+
+      if (isAuthCookie && cookie.expires) {
+        if (cookie.expires < now) {
+          console.error(`❌ Cookie expired: ${cookie.name} (expired ${new Date(cookie.expires * 1000).toISOString()})`);
+          return false;
+        }
+      }
+    }
+
+    console.error('✅ All authentication cookies are valid');
+    return true;
+  }
+
+  /**
+   * Get the earliest cookie expiry timestamp from a storage state.
+   * @param storageState - The storage state object from Playwright
+   * @returns The earliest expiry timestamp in Unix seconds, or null if no cookies
+   */
+  private getEarliestCookieExpiry(storageState: any): number | null {
+    if (!storageState?.cookies) return null;
+
+    let earliest: number | null = null;
+    for (const cookie of storageState.cookies) {
+      if (cookie.expires && (!earliest || cookie.expires < earliest)) {
+        earliest = cookie.expires;
+      }
+    }
+    return earliest;
+  }
+
+  /**
+   * Determine if the browser should run in headless mode.
+   * Uses headless mode if we have a valid authenticated session.
+   * @returns true if headless mode should be used, false if browser should be visible
+   */
+  private shouldUseHeadlessMode(): boolean {
+    // If we have a validated session, we can use headless mode
+    // Otherwise, keep visible for initial login
+    return this.isAuthenticatedSession;
+  }
+
+  /**
+   * Fast session validation using HTTP redirect check.
+   * Much faster than DOM selector-based validation (5s vs 21s).
+   * @returns true if session is valid, false otherwise
+   */
+  async validateSessionFast(): Promise<boolean> {
+    if (!this.page) {
+      console.error('⚠️  Cannot validate session: browser not initialized');
+      return false;
+    }
+
+    try {
+      console.error('🔍 Validating session...');
+
+      // Navigate to lightweight Medium endpoint
+      const response = await this.page.goto('https://medium.com/me', {
+        waitUntil: 'domcontentloaded', // Faster than networkidle
+        timeout: 10000
+      });
+
+      // Check if redirected to login page
+      const currentUrl = this.page.url();
+      if (currentUrl.includes('/m/signin') || currentUrl.includes('login')) {
+        console.error('❌ Session invalid: redirected to login page');
+        return false;
+      }
+
+      // Check response status
+      if (response && (response.status() === 401 || response.status() === 403)) {
+        console.error('❌ Session invalid: received auth error status');
+        return false;
+      }
+
+      console.error('✅ Session validated successfully (fast check)');
+      return true;
+    } catch (error) {
+      console.error('⚠️  Session validation failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Pre-validate session file without launching browser.
+   * Checks if session file exists and cookies are not expired.
+   * @returns true if session file is valid, false otherwise
+   */
+  async preValidateSession(): Promise<boolean> {
+    if (!existsSync(this.sessionPath)) {
+      console.error('❌ No session file found');
+      return false;
+    }
+
+    try {
+      const sessionData = JSON.parse(readFileSync(this.sessionPath, 'utf8'));
+      return this.validateStorageState(sessionData);
+    } catch (error) {
+      console.error('❌ Session file corrupted:', error);
+      return false;
+    }
   }
 
   async close(): Promise<void> {

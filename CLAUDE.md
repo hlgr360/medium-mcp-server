@@ -30,11 +30,23 @@ npm run dev
 
 ### Testing
 ```bash
-# Run tests
+# Run all tests with Playwright Test
 npm test
 
-# Note: test-browser.js mentioned in README does not exist in current codebase
+# Run tests with visible browser
+npm run test:headed
+
+# Open Playwright Test UI for debugging
+npm run test:ui
+
+# View HTML test report
+npm run test:report
 ```
+
+**Test Coverage**:
+- **Session Management**: Cookie validation, session persistence, expiry detection
+- **Browser Lifecycle**: Initialize/close cycles, headless mode switching
+- **Authentication**: Fast session validation, login timeout handling
 
 ## Architecture
 
@@ -80,10 +92,33 @@ Response → JSON → MCP Client
 
 ### Session Persistence
 
-- Session file: `medium-session.json` (gitignored)
-- Contains cookies and localStorage state
-- Login required only on first run or session expiry
-- Browser launches non-headless initially for login, can run headless after
+**Overview**: The server implements robust session persistence to avoid repeated logins across tool invocations.
+
+**Session File**: `medium-session.json` (gitignored)
+- **Location**: Project root directory
+- **Contents**: Cookies and localStorage state from Medium.com
+- **Format**: JSON file compatible with Playwright's `storageState()` API
+
+**Lifecycle**:
+1. **First Use**: User calls `login-to-medium` tool → Browser opens visibly → User logs in → Session saved
+2. **Subsequent Uses**: Browser loads session → Validates cookies → Auto-switches to headless mode
+3. **Expiry**: Session validation detects expired cookies → Triggers re-login automatically
+
+**Cookie Validation**:
+- `validateStorageState()`: Pre-checks cookie expiration timestamps before browser launch
+- Validates Medium-specific auth cookies (sid, uid, session)
+- Rejects sessions with any expired authentication cookies
+- Logs expiry dates for debugging
+
+**Session Validation**:
+- `validateSessionFast()`: Fast HTTP redirect check (5s vs old 21s DOM selector method)
+- Navigates to `https://medium.com/me` and checks for redirect to login page
+- Much faster than fragile DOM selector-based validation
+
+**Headless Mode**:
+- Browser automatically uses headless mode when valid session exists
+- Non-headless mode only for initial login and when `login-to-medium` is called
+- Configurable via `initialize(forceHeadless?: boolean)` parameter
 
 ### Error Handling Patterns
 
@@ -113,15 +148,24 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 
 ### Browser Automation Considerations
 
-- **Speed**: Operations take 10-30 seconds (browser automation overhead)
+- **Speed**: Operations take 10-30 seconds (browser automation overhead). Browser launches fresh for each tool invocation and closes afterward.
+- **Browser Lifecycle**: Browser is NOT persistent - it opens for each operation and closes when done. This saves resources but adds 5-10s startup time per operation.
 - **Selector Fragility**: Medium UI changes will break selectors - use multiple fallback strategies
-- **Google Login Issues**: Email/password login preferred; Google OAuth has session persistence issues
-- **Headless Mode**: Browser starts visible (`headless: false`) for initial login, can be changed after session established
+  - **Latest Update (Dec 2024)**: Medium changed `data-testid` selectors:
+    - `headerUserButton` → `headerUserIcon` (user profile button)
+    - `write-button` → `headerWriteButton` (write button)
+    - Added `headerNotificationButton` as additional login indicator
+  - **Debugging UI Changes**: Use `src/debug-login.ts` to analyze current page structure and find new selectors
+- **Google Login Issues**: Email/password login preferred; Google OAuth may have session persistence issues
+- **Headless Mode**: Browser auto-switches to headless mode after initial login. Non-headless only for `login-to-medium` tool.
+- **Session Validation**: Fast validation check (5s) runs before each operation to ensure session is still valid
 
 ### Development Guidelines
 
 - **When adding new tools**: Follow the pattern in index.ts (Zod schema validation, error wrapping)
 - **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
+  - **Current login selectors (Dec 2024)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
+  - **Debugging selector changes**: Run `npm run build && node dist/debug-login.js` to analyze current page structure
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
 - **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues

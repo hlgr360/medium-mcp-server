@@ -37,11 +37,14 @@ class MediumMcpServer {
       },
       async (args) => {
         try {
-          const publishResult = await this.mediumClient.publishArticle({
-            title: args.title,
-            content: args.content,
-            tags: args.tags,
-            isDraft: args.isDraft
+          // Use withBrowserSession to manage browser lifecycle
+          const publishResult = await this.withBrowserSession(async () => {
+            return await this.mediumClient.publishArticle({
+              title: args.title,
+              content: args.content,
+              tags: args.tags,
+              isDraft: args.isDraft
+            });
           });
 
           return {
@@ -73,7 +76,10 @@ class MediumMcpServer {
       {},
       async () => {
         try {
-          const articles = await this.mediumClient.getUserArticles();
+          // Use withBrowserSession to manage browser lifecycle
+          const articles = await this.withBrowserSession(async () => {
+            return await this.mediumClient.getUserArticles();
+          });
 
           return {
             content: [
@@ -107,7 +113,10 @@ class MediumMcpServer {
       },
       async (args) => {
         try {
-          const content = await this.mediumClient.getArticleContent(args.url, args.requireLogin);
+          // Use withBrowserSession to manage browser lifecycle
+          const content = await this.withBrowserSession(async () => {
+            return await this.mediumClient.getArticleContent(args.url, args.requireLogin);
+          });
 
           return {
             content: [
@@ -140,7 +149,10 @@ class MediumMcpServer {
       },
       async (args) => {
         try {
-          const articles = await this.mediumClient.searchMediumArticles(args.keywords);
+          // Use withBrowserSession to manage browser lifecycle
+          const articles = await this.withBrowserSession(async () => {
+            return await this.mediumClient.searchMediumArticles(args.keywords);
+          });
 
           return {
             content: [
@@ -167,21 +179,34 @@ class MediumMcpServer {
     // Tool to manually trigger login (useful for initial setup)
     this.server.tool(
       "login-to-medium",
-      "Manually trigger Medium login process",
+      "Manually trigger Medium login process. Browser will open visibly for login.",
       {},
       async () => {
         try {
+          // Force non-headless mode for login so user can interact
+          await this.mediumClient.initialize(false);
+          console.error('🌐 Browser opened for login (non-headless)');
+
           const success = await this.mediumClient.ensureLoggedIn();
-          
+
+          // Close browser after login
+          await this.mediumClient.close();
+          console.error('🔒 Browser closed after login');
+
           return {
             content: [
               {
                 type: "text",
-                text: success ? "✅ Successfully logged in to Medium" : "❌ Login failed"
+                text: success
+                  ? "✅ Successfully logged in to Medium. Session saved for future use."
+                  : "❌ Login failed. Please try again."
               }
             ]
           };
         } catch (error: any) {
+          // Ensure browser is closed even if login fails
+          await this.mediumClient.close();
+
           return {
             isError: true,
             content: [
@@ -196,16 +221,46 @@ class MediumMcpServer {
     );
   }
 
+  /**
+   * Wrapper to manage browser lifecycle for each MCP tool invocation.
+   * Ensures browser is initialized, session is validated, and browser is closed after operation.
+   * @param operation - The async operation to execute with an initialized browser
+   * @returns The result of the operation
+   */
+  private async withBrowserSession<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      // Initialize browser (will use headless mode if valid session exists)
+      await this.mediumClient.initialize();
+      console.error('🌐 Browser initialized for operation');
+
+      // Validate session fast (5s check vs 21s DOM selector check)
+      const isValid = await this.mediumClient.validateSessionFast();
+      if (!isValid) {
+        console.error('🔐 Session invalid or missing, attempting login...');
+        await this.mediumClient.ensureLoggedIn();
+      }
+
+      // Execute the operation
+      console.error('⚙️  Executing operation...');
+      return await operation();
+    } finally {
+      // CRITICAL: Always close browser after operation to free resources
+      console.error('🔒 Closing browser after operation');
+      await this.mediumClient.close();
+    }
+  }
+
   // Method to start the server
   async start() {
     try {
-      // Initialize browser client
-      await this.mediumClient.initialize();
-      console.error("🌐 Browser Medium client initialized");
+      // Browser will be initialized on-demand for each tool invocation
+      // This saves resources and allows session validation before operations
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
       console.error("🚀 Medium MCP Server (Browser-based) Initialized");
+      console.error("💡 Browser will launch on-demand for each operation");
+      console.error("💡 Use 'login-to-medium' tool first if you don't have a saved session");
     } catch (error) {
       console.error("Failed to start server:", error);
       throw error;

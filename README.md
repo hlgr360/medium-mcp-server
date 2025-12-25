@@ -130,10 +130,13 @@ Manually trigger login process
 ## How It Works
 
 ### First Time Setup
-1. **Run the server** - It will open a Chrome browser window
-2. **Login to Medium** - Complete login in the opened browser
-3. **Session saved** - Your login session is saved locally
-4. **Future runs** - No login required, runs headlessly
+1. **Start the server** - Run `npm start`
+2. **Call login-to-medium tool** - Use this MCP tool to trigger login
+3. **Login in browser** - A Chrome window opens for you to login to Medium
+4. **Session saved** - Your login session is saved to `medium-session.json`
+5. **Future operations** - Browser automatically uses headless mode with saved session
+
+**Important**: Browser launches fresh for each operation and closes when done. This saves resources but adds 5-10s startup time per operation.
 
 ### Browser Automation Flow
 ```
@@ -141,9 +144,11 @@ User Request → MCP Server → Playwright Browser → Medium Website → Respon
 ```
 
 ### Session Management
-- Login session stored in `medium-session.json`
-- Automatically reused on subsequent runs
-- Re-login only if session expires
+- **Storage**: Login session stored in `medium-session.json` (cookies + localStorage)
+- **Validation**: Cookies are validated for expiration before each operation (5s fast check)
+- **Auto-Login**: If session is invalid/expired, browser opens for re-login automatically
+- **Headless Mode**: Browser uses headless mode when valid session exists, non-headless only for login
+- **Debugging**: Delete `medium-session.json` to force re-login and test from scratch
 
 ## Example Usage with Claude
 
@@ -164,14 +169,25 @@ Claude: Uses publish-article tool →
 - **Login fails**: Clear `medium-session.json` and try again
 - **Slow performance**: Browser automation takes 10-30 seconds per operation
 
-### Medium Changes
+### Login Detection Issues
+- **Browser doesn't close after login** (Fixed Dec 2024): Update to latest version - Medium changed their UI selectors
+- **Session file not created**: Ensure you complete the full login (see profile icon appear)
+- **Debug login detection**: Run `npm run build && node dist/debug-login.js` to analyze current page selectors
+- **Current selectors (Dec 2024)**:
+  - User icon: `[data-testid="headerUserIcon"]`
+  - Write button: `[data-testid="headerWriteButton"]`
+  - Notifications: `[data-testid="headerNotificationButton"]`
+
+### Medium UI Changes
 - **Selectors outdated**: Medium occasionally changes their website structure
+  - **Latest update**: December 2024 - Changed `headerUserButton` → `headerUserIcon`
+  - **Solution**: Run debug script to find new selectors: `node dist/debug-login.js`
 - **Login blocked**: Use your regular browser to login first, then try again
 
 ### Common Errors
 - `Browser not initialized`: Restart the server
-- `Login timeout`: Increase timeout in browser-client.ts
-- `Element not found`: Medium may have changed their UI
+- `Login timeout`: Increase timeout in browser-client.ts (default: 5 minutes)
+- `Element not found`: Medium may have changed their UI - check debug script output
 
 ## Development
 
@@ -186,15 +202,30 @@ src/
 
 ### Testing
 ```bash
-# Test browser automation
-node test-browser.js
+# Run all tests with Playwright Test
+npm test
 
-# Run MCP server
-npm start
+# Run tests with visible browser
+npm run test:headed
+
+# Open Playwright Test UI for debugging
+npm run test:ui
+
+# View HTML test report
+npm run test:report
 
 # Build project
 npm run build
+
+# Run MCP server
+npm start
 ```
+
+**Test Coverage**:
+- Session persistence and cookie validation
+- Browser lifecycle management
+- Authentication and session validation
+- Headless mode switching
 
 ## Security Notes
 - ✅ **Local only** - No data sent to external servers
