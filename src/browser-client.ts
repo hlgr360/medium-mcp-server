@@ -30,7 +30,17 @@ export class BrowserMediumClient {
    * @param forceHeadless - Optional parameter to force headless mode. If not provided, uses shouldUseHeadlessMode().
    */
   async initialize(forceHeadless?: boolean): Promise<void> {
+    // Diagnostic logging
+    console.error('═══════════════════════════════════════');
+    console.error('🔧 INITIALIZE DIAGNOSTICS');
+    console.error(`   Working directory: ${process.cwd()}`);
+    console.error(`   Session path: ${this.sessionPath}`);
+    console.error(`   Session file exists: ${existsSync(this.sessionPath)}`);
+    console.error(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
+
     const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
+    console.error(`   Headless mode: ${headlessMode}`);
+    console.error('═══════════════════════════════════════\n');
 
     this.browser = await chromium.launch({
       headless: headlessMode, // Dynamic: visible for initial login, headless after
@@ -207,8 +217,23 @@ export class BrowserMediumClient {
       // Note: IndexedDB capture support may vary by Playwright version
       const sessionData = await this.context.storageState();
 
+      console.error('═══════════════════════════════════════');
+      console.error('💾 SAVING SESSION');
+      console.error(`   Path: ${this.sessionPath}`);
+      console.error(`   Working dir: ${process.cwd()}`);
+
       writeFileSync(this.sessionPath, JSON.stringify(sessionData, null, 2));
       this.isAuthenticatedSession = true;
+
+      // Verify file was written
+      const fileExists = existsSync(this.sessionPath);
+      console.error(`   File written: ${fileExists ? '✅ YES' : '❌ NO'}`);
+      if (fileExists) {
+        const fs = require('fs');
+        const stats = fs.statSync(this.sessionPath);
+        console.error(`   File size: ${stats.size} bytes`);
+      }
+      console.error('═══════════════════════════════════════\n');
 
       console.error('💾 Session saved for future use');
 
