@@ -634,18 +634,17 @@ export class BrowserMediumClient {
       await this.page.goto('https://medium.com/new-story');
       await this.page.waitForLoadState('networkidle');
 
-      // Wait for the editor to load
-      await this.page.waitForSelector('[data-testid="richTextEditor"]', { timeout: 10000 });
+      // Wait for the editor to load (Medium changed selectors in late 2024)
+      await this.page.waitForSelector('[data-testid="editorTitleParagraph"]', { timeout: 15000 });
 
-      // Add title
-      const titleSelector = '[data-testid="richTextEditor"] h1, [placeholder*="Title"], .graf--title';
-      await this.page.waitForSelector(titleSelector);
+      // Add title using new selector
+      const titleSelector = '[data-testid="editorTitleParagraph"]';
       await this.page.click(titleSelector);
       await this.page.fill(titleSelector, options.title);
 
-      // Add content
-      const contentSelector = '[data-testid="richTextEditor"] p, .graf--p';
-      await this.page.waitForSelector(contentSelector);
+      // Add content using new selector
+      const contentSelector = '[data-testid="editorParagraphText"]';
+      await this.page.waitForSelector(contentSelector, { timeout: 10000 });
       await this.page.click(contentSelector);
       
       // Split content into paragraphs and add them

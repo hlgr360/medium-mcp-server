@@ -316,7 +316,8 @@ npm run test:report
 - Browser lifecycle management
 - Authentication and session validation
 - Headless mode switching
-- **Article retrieval** (NEW v1.2): Tab-based scraping, status tagging, dual link formats
+- **Article retrieval** (v1.2): Tab-based scraping, status tagging, dual link formats
+- **Article publishing** (v1.2): Draft creation with new editor selectors
 
 #### Unit/Integration Tests (Jest)
 ```bash

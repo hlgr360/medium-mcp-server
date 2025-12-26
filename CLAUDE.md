@@ -202,6 +202,10 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
         - Only scrapes tabs with articles (skips empty tabs)
         - Handles dual link formats: Edit links `/p/{id}/edit` (drafts) vs public links `/@user/slug-{id}` (published)
         - Tags each article with status: `draft`, `published`, `unlisted`, `scheduled`, `submission`
+    - **Article editor (publishArticle)**: Updated for new Medium editor selectors
+      - **Old approach**: `[data-testid="richTextEditor"]` selector (REMOVED by Medium)
+      - **New selectors**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
+      - **Debugging**: Use `scripts/debug-editor-wait.ts` to analyze editor DOM structure
   - **Debugging UI Changes**: Use `scripts/debug-login.ts` and `scripts/debug-articles*.ts` to analyze page structure
 - **Google Login Issues**: Email/password login preferred; Google OAuth may have session persistence issues
 - **Headless Mode**: Browser auto-switches to headless mode after initial login. Non-headless only for `login-to-medium` tool.
@@ -213,9 +217,11 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 - **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
   - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
   - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
+  - **Current editor selectors (v1.2)**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
   - **Debugging selector changes**:
     - Login page: `npx ts-node scripts/debug-login.ts`
     - Articles page: `npx ts-node scripts/debug-articles.ts` or `npx ts-node scripts/debug-articles-detailed.ts`
+    - Editor page: `npx ts-node scripts/debug-editor-wait.ts`
     - Test extraction: `npx ts-node scripts/test-get-articles-simple.ts`
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
