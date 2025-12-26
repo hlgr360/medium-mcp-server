@@ -25,15 +25,15 @@ class MediumMcpServer {
   }
 
   private registerTools() {
-    // Tool for publishing articles (now browser-based)
+    // Tool for creating article drafts (browser-based)
     this.server.tool(
       "publish-article",
-      "Publish a new article on Medium using browser automation",
+      "Create a new article draft on Medium using browser automation",
       {
         title: z.string().min(1, "Title is required"),
         content: z.string().min(10, "Content must be at least 10 characters"),
         tags: z.array(z.string()).optional(),
-        isDraft: z.boolean().optional().default(false)
+        isDraft: z.boolean().optional().default(true)
       },
       async (args) => {
         try {

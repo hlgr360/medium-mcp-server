@@ -90,15 +90,17 @@ Add this to your Claude MCP configuration (`~/Library/Application Support/Claude
 ## Available MCP Tools
 
 ### 1. `publish-article`
-Publish a new article to Medium
+Create a new article draft on Medium
 ```typescript
 {
   title: string,      // Article title
-  content: string,    // Article content (markdown supported)
-  tags?: string[],    // Optional tags
-  isDraft?: boolean   // Save as draft (default: false)
+  content: string,    // Article content (supports multiple paragraphs)
+  tags?: string[],    // Optional tags (not currently functional)
+  isDraft?: boolean   // Save as draft (recommended: true)
 }
 ```
+
+**Note**: Currently tested and verified for draft creation only (`isDraft: true`). Full publish flow and tag support require additional selector updates.
 
 ### 2. `get-my-articles`
 Retrieve ALL your Medium articles (drafts, published, unlisted, etc.)
@@ -159,13 +161,13 @@ User Request → MCP Server → Playwright Browser → Medium Website → Respon
 ## Example Usage with Claude
 
 ```
-User: "Publish an article titled 'AI in 2025' with content about recent developments"
+User: "Create a draft article titled 'AI in 2025' with content about recent developments"
 
 Claude: Uses publish-article tool →
 - Opens Medium editor
 - Fills in title and content
-- Publishes article
-- Returns success with article URL
+- Saves as draft
+- Returns success
 ```
 
 ## Troubleshooting
