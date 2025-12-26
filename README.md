@@ -95,12 +95,11 @@ Create a new article draft on Medium
 {
   title: string,      // Article title
   content: string,    // Article content (supports multiple paragraphs)
-  tags?: string[],    // Optional tags (not currently functional)
-  isDraft?: boolean   // Save as draft (recommended: true)
+  tags?: string[]     // Optional tags (not currently functional)
 }
 ```
 
-**Note**: Currently tested and verified for draft creation only (`isDraft: true`). Full publish flow and tag support require additional selector updates.
+**Note**: This tool creates drafts only. Articles are saved to your Medium drafts and not automatically published. Tag support requires additional selector updates.
 
 ### 2. `get-my-articles`
 Retrieve ALL your Medium articles (drafts, published, unlisted, etc.)

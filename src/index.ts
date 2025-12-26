@@ -32,8 +32,7 @@ class MediumMcpServer {
       {
         title: z.string().min(1, "Title is required"),
         content: z.string().min(10, "Content must be at least 10 characters"),
-        tags: z.array(z.string()).optional(),
-        isDraft: z.boolean().optional().default(true)
+        tags: z.array(z.string()).optional()
       },
       async (args) => {
         try {
@@ -43,7 +42,7 @@ class MediumMcpServer {
               title: args.title,
               content: args.content,
               tags: args.tags,
-              isDraft: args.isDraft
+              isDraft: true  // Always save as draft (publish flow not implemented)
             });
           });
 
