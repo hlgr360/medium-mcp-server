@@ -1,6 +1,11 @@
-import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { chromium as playwrightChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page, BrowserContext } from 'playwright';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+
+// Enable stealth plugin to bypass bot detection (Cloudflare, etc.)
+playwrightChromium.use(StealthPlugin());
 
 export interface MediumArticle {
   title: string;
@@ -9,6 +14,7 @@ export interface MediumArticle {
   publishDate?: string;
   tags?: string[];
   claps?: number;
+  status?: 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission' | 'unknown';
 }
 
 export interface PublishOptions {
@@ -71,7 +77,7 @@ export class BrowserMediumClient {
     console.error(`   Headless mode: ${headlessMode}`);
     console.error('═══════════════════════════════════════\n');
 
-    this.browser = await chromium.launch({
+    this.browser = await playwrightChromium.launch({
       headless: headlessMode, // Dynamic: visible for initial login, headless after
       slowMo: 100, // Slow down for reliability
       args: [
@@ -263,42 +269,165 @@ export class BrowserMediumClient {
 
   async getUserArticles(): Promise<MediumArticle[]> {
     if (!this.page) throw new Error('Browser not initialized');
-    
+
     await this.ensureLoggedIn();
-    
-    // Navigate to user's stories
-    await this.page.goto('https://medium.com/me/stories/public');
-    await this.page.waitForLoadState('networkidle');
 
-    // Extract article information
-    const articles = await this.page.evaluate(() => {
-      const articleElements = document.querySelectorAll('[data-testid="story-preview"]');
-      const articles: MediumArticle[] = [];
+    // Navigate to main stories page
+    console.error('📚 Fetching all user articles from all tabs...');
+    await this.page.goto('https://medium.com/me/stories', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    await this.page.waitForTimeout(2000);
 
-      articleElements.forEach(element => {
-        try {
-          const titleElement = element.querySelector('h3, h2, [data-testid="story-title"]');
-          const linkElement = element.querySelector('a[href*="/"]');
-          const dateElement = element.querySelector('[data-testid="story-publish-date"], time');
-          
-          if (titleElement && linkElement) {
-            articles.push({
-              title: titleElement.textContent?.trim() || '',
-              content: '', // We'll need to fetch full content separately
-              url: (linkElement as HTMLAnchorElement).href,
-              publishDate: dateElement?.textContent?.trim() || '',
-              tags: []
-            });
-          }
-        } catch (error) {
-          console.error('Error extracting article:', error);
+    // Parse tab names to find which tabs have articles
+    const tabsWithCounts = await this.page.evaluate(() => {
+      const tabs: Array<{ name: string; count: number; selector: string }> = [];
+
+      // Find all tab elements (buttons or links)
+      const tabElements = document.querySelectorAll('button, a');
+
+      tabElements.forEach(el => {
+        const text = el.textContent?.trim() || '';
+
+        // Match patterns like "Drafts1", "Published2", "Unlisted0", etc.
+        const match = text.match(/^(Drafts|Published|Unlisted|Scheduled|Submissions?)(\d+)?$/);
+
+        if (match) {
+          const tabName = match[1].toLowerCase();
+          const count = match[2] ? parseInt(match[2], 10) : 0;
+
+          // Store selector for clicking this tab
+          const selector = `button:has-text("${text}"), a:has-text("${text}")`;
+
+          tabs.push({ name: tabName, count, selector });
         }
       });
 
-      return articles;
+      return tabs;
     });
 
-    return articles;
+    console.error(`Found tabs: ${tabsWithCounts.map(t => `${t.name}(${t.count})`).join(', ')}`);
+
+    // Collect all articles from all tabs
+    const allArticles: MediumArticle[] = [];
+
+    // Map tab names to status values
+    const statusMap: { [key: string]: MediumArticle['status'] } = {
+      'drafts': 'draft',
+      'published': 'published',
+      'unlisted': 'unlisted',
+      'scheduled': 'scheduled',
+      'submissions': 'submission',
+      'submission': 'submission'
+    };
+
+    // Scrape each tab that has articles
+    for (const tab of tabsWithCounts) {
+      if (tab.count === 0) {
+        console.error(`⏭️  Skipping ${tab.name} (0 articles)`);
+        continue;
+      }
+
+      console.error(`\n📑 Fetching from ${tab.name} tab (${tab.count} articles)...`);
+
+      try {
+        // Click the tab
+        const tabElement = this.page.locator(tab.selector).first();
+        await tabElement.click();
+
+        // Wait for URL to change
+        await this.page.waitForTimeout(1000);
+
+        // Wait for network to be idle
+        await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+          console.error('  ⚠️  Network idle timeout, continuing anyway...');
+        });
+
+        // Additional wait for DOM updates
+        await this.page.waitForTimeout(1000);
+
+        // Extract articles from this tab
+        const tabArticles = await this.page.evaluate((status: string) => {
+          const articles: any[] = [];
+          const rows = document.querySelectorAll('table tbody tr');
+
+          rows.forEach((row) => {
+            try {
+              const h2 = row.querySelector('h2');
+              if (!h2) return;
+
+              // Try both link formats:
+              // 1. Edit links (drafts): /p/{id}/edit
+              // 2. Public links (published): /@username/slug-title-{id}
+              let articleUrl = '';
+              let articleLink: HTMLAnchorElement | null = null;
+
+              // Try edit link first
+              articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/p/"][href*="/edit"]');
+              if (articleLink) {
+                // Extract ID from edit link and construct public URL
+                const match = articleLink.href.match(/\/p\/([a-f0-9]+)\//);
+                if (match) {
+                  articleUrl = `https://medium.com/p/${match[1]}`;
+                }
+              } else {
+                // Try public link (for published articles)
+                articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/@"]');
+                if (articleLink) {
+                  articleUrl = articleLink.href;
+                }
+              }
+
+              if (!articleUrl) return;
+
+              // Extract metadata
+              const rowText = row.textContent || '';
+              let publishDate = '';
+
+              // Try to extract date (different formats for different states)
+              const publishedMatch = rowText.match(/Published\s+([A-Za-z]+\s+\d+)/); // "Published May 13"
+              const updatedMatch = rowText.match(/Updated\s+([^·]+)/); // "Updated just now"
+              const readTimeMatch = rowText.match(/(\d+\s+min\s+read)/); // "7 min read"
+
+              if (publishedMatch) {
+                publishDate = publishedMatch[1];
+              } else if (updatedMatch) {
+                publishDate = updatedMatch[1].trim();
+              } else if (readTimeMatch) {
+                publishDate = readTimeMatch[1];
+              }
+
+              articles.push({
+                title: h2.textContent?.trim() || '',
+                content: '',
+                url: articleUrl,
+                publishDate,
+                tags: [],
+                status
+              });
+            } catch (error) {
+              console.error('Error extracting article:', error);
+            }
+          });
+
+          return articles;
+        }, statusMap[tab.name] || 'unknown');
+
+        console.error(`  ✅ Found ${tabArticles.length} article(s)`);
+        tabArticles.forEach((article: MediumArticle) => {
+          console.error(`     - "${article.title}"`);
+        });
+
+        allArticles.push(...tabArticles);
+
+      } catch (error: any) {
+        console.error(`  ❌ Error fetching ${tab.name}: ${error.message}`);
+      }
+    }
+
+    console.error(`\n✅ Total articles collected: ${allArticles.length}`);
+    return allArticles;
   }
 
   async getArticleContent(url: string, requireLogin: boolean = true): Promise<string> {

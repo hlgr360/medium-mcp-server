@@ -189,12 +189,20 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 
 - **Speed**: Operations take 10-30 seconds (browser automation overhead). Browser launches fresh for each tool invocation and closes afterward.
 - **Browser Lifecycle**: Browser is NOT persistent - it opens for each operation and closes when done. This saves resources but adds 5-10s startup time per operation.
+- **Stealth Mode (v1.2+)**: Uses `playwright-extra` with `puppeteer-extra-plugin-stealth` to bypass bot detection (Cloudflare, etc.) in headless mode
+  - Masks automation fingerprints (webdriver, navigator properties, WebGL/Canvas)
+  - Allows reliable headless operation without being blocked
 - **Selector Fragility**: Medium UI changes will break selectors - use multiple fallback strategies
-  - **Latest Update (v1.2, Dec 2025)**: Medium changed `data-testid` selectors:
-    - `headerUserButton` → `headerUserIcon` (user profile button)
-    - `write-button` → `headerWriteButton` (write button)
-    - Added `headerNotificationButton` as additional login indicator
-  - **Debugging UI Changes**: Use `scripts/debug-login.ts` to analyze current page structure and find new selectors
+  - **Latest Updates (v1.2, Dec 2025)**:
+    - **Login indicators**: `headerUserButton` → `headerUserIcon`, `write-button` → `headerWriteButton`, added `headerNotificationButton`
+    - **Article list (getUserArticles)**: Complete rewrite for new Medium layout
+      - **Old approach**: `[data-testid="story-preview"]` selector (REMOVED by Medium)
+      - **New approach**: Tab-based scraping with smart detection
+        - Parses tab names to find article counts: "Drafts1", "Published2", etc.
+        - Only scrapes tabs with articles (skips empty tabs)
+        - Handles dual link formats: Edit links `/p/{id}/edit` (drafts) vs public links `/@user/slug-{id}` (published)
+        - Tags each article with status: `draft`, `published`, `unlisted`, `scheduled`, `submission`
+  - **Debugging UI Changes**: Use `scripts/debug-login.ts` and `scripts/debug-articles*.ts` to analyze page structure
 - **Google Login Issues**: Email/password login preferred; Google OAuth may have session persistence issues
 - **Headless Mode**: Browser auto-switches to headless mode after initial login. Non-headless only for `login-to-medium` tool.
 - **Session Validation**: Fast validation check (5s) runs before each operation to ensure session is still valid
@@ -204,7 +212,11 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 - **When adding new tools**: Follow the pattern in index.ts (Zod schema validation, error wrapping)
 - **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
   - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
-  - **Debugging selector changes**: Run `npx ts-node scripts/debug-login.ts` to analyze current page structure
+  - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
+  - **Debugging selector changes**:
+    - Login page: `npx ts-node scripts/debug-login.ts`
+    - Articles page: `npx ts-node scripts/debug-articles.ts` or `npx ts-node scripts/debug-articles-detailed.ts`
+    - Test extraction: `npx ts-node scripts/test-get-articles-simple.ts`
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
 - **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues
@@ -345,3 +357,20 @@ error TS2589: Type instantiation is excessively deep and possibly infinite
 **Version is locked**: The package.json specifies `"@modelcontextprotocol/sdk": "~1.21.2"` using tilde (`~`) to allow patch updates (1.21.x) but prevent minor/major version upgrades. This means security patches can be applied automatically while blocking the breaking changes in v1.22.0+.
 
 **Future Upgrade**: To use v1.22.0+, you'll need to refactor tool registration to use explicit type annotations or simpler schema definitions that don't trigger TypeScript's recursion limit.
+
+### Stealth Dependencies (v1.2+)
+
+**Added for bot detection bypass**: `playwright-extra` + `puppeteer-extra-plugin-stealth`
+
+These dependencies enable headless browser operation without being blocked by Cloudflare and other bot detection systems:
+- **playwright-extra**: Wrapper around Playwright that enables plugin support
+- **puppeteer-extra-plugin-stealth**: Plugin that masks automation fingerprints
+
+**Why needed**: Medium uses Cloudflare which blocks standard headless browsers. The stealth plugin:
+- Removes `navigator.webdriver` property
+- Spoofs Chrome DevTools Protocol detection
+- Masks WebGL/Canvas fingerprinting
+- Fixes timezone/locale inconsistencies
+- Passes most bot detection tests
+
+**Installation**: Already included in package.json dependencies. No special configuration needed.

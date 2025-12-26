@@ -101,10 +101,13 @@ Publish a new article to Medium
 ```
 
 ### 2. `get-my-articles`
-Retrieve your published Medium articles
+Retrieve ALL your Medium articles (drafts, published, unlisted, etc.)
 ```typescript
 // No parameters needed
-// Returns: Array of your articles with titles, URLs, and dates
+// Returns: Array of articles with:
+// - title, url, publishDate
+// - status: 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission'
+// NEW in v1.2: Returns articles from ALL tabs with status tagging
 ```
 
 ### 3. `get-article-content`
@@ -208,6 +211,20 @@ tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
   - Write button: `[data-testid="headerWriteButton"]`
   - Notifications: `[data-testid="headerNotificationButton"]`
 
+### Article Retrieval Issues (v1.2+)
+- **`get-my-articles` returns 0 articles**: Medium changed from card layout to table layout
+  - **Fixed in v1.2**: Update to latest version with tab-based scraping
+  - **Debug article page**: Run `npx ts-node scripts/debug-articles.ts` to analyze page structure
+  - **Test retrieval**: Run `npx ts-node scripts/test-all-articles.ts` to validate
+- **Missing articles from specific tabs**: Check tab counts manually
+  - Tabs show counts: "Drafts1", "Published2", etc.
+  - Only tabs with counts > 0 are scraped
+- **Wrong article status**: Status is determined by which tab the article appears in
+  - Ensure articles are actually in the expected Medium tab
+- **Cloudflare blocking in headless mode** (Fixed in v1.2): Stealth mode now bypasses detection
+  - Uses `playwright-extra` with `puppeteer-extra-plugin-stealth`
+  - No VPN needed for headless operation
+
 ### Medium UI Changes
 - **Selectors outdated**: Medium occasionally changes their website structure
   - **Latest update**: v1.2 (December 2025) - Changed `headerUserButton` → `headerUserIcon`
@@ -231,12 +248,51 @@ tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
 
 ### Project Structure
 ```
-src/
-├── index.ts           # Main MCP server
-├── browser-client.ts  # Playwright automation
-├── auth.ts           # Legacy auth (unused)
-└── client.ts         # Legacy API client (unused)
+medium-mcp-server/
+├── src/
+│   ├── index.ts                      # MCP server entry point
+│   ├── browser-client.ts             # Playwright browser automation
+│   ├── auth.ts                       # Legacy OAuth (unused)
+│   ├── client.ts                     # Legacy API client (unused)
+│   └── __tests__/                    # Jest test suite
+│       ├── unit/                     # Pure unit tests (29 tests)
+│       │   ├── validation.test.ts    # Cookie validation logic
+│       │   ├── cookie-utils.test.ts  # Cookie expiry detection
+│       │   └── headless-mode.test.ts # Headless mode logic
+│       ├── integration/              # Integration tests (53 tests)
+│       │   ├── browser-client.test.ts # BrowserMediumClient methods
+│       │   └── mcp-tools.test.ts     # MCP tool handlers
+│       └── helpers/                  # Test utilities
+│           ├── mock-playwright.ts    # Playwright mock factory
+│           ├── fixtures.ts           # Test data
+│           └── matchers.ts           # Custom Jest matchers
+├── tests/                            # Playwright E2E tests
+│   ├── session-management.spec.ts    # Session persistence E2E
+│   ├── browser-lifecycle.spec.ts     # Browser lifecycle E2E
+│   ├── authentication.spec.ts        # Authentication E2E
+│   └── get-user-articles.spec.ts     # Article retrieval E2E (NEW v1.2)
+├── scripts/
+│   ├── debug-login.ts                # Debug login selector issues
+│   ├── debug-articles.ts             # Debug article page structure
+│   ├── debug-articles-detailed.ts    # Deep article DOM analysis
+│   ├── debug-table-structure.ts      # Analyze article table structure
+│   └── test-all-articles.ts          # Quick test for getUserArticles
+├── dist/                             # Compiled JavaScript output
+├── medium-session.json               # Saved login session (gitignored)
+├── package.json                      # Dependencies and scripts
+├── tsconfig.json                     # TypeScript configuration
+├── jest.config.js                    # Jest test configuration
+├── playwright.config.ts              # Playwright E2E configuration
+├── CLAUDE.md                         # AI development guide
+└── README.md                         # This file
 ```
+
+**Key Files:**
+- **index.ts**: MCP server with 5 registered tools
+- **browser-client.ts**: Core Playwright automation engine
+- **medium-session.json**: Persistent login session storage
+- **auth.ts/client.ts**: Legacy API code (unused, kept for reference)
+- **scripts/debug-login.ts**: Debugging tool for Medium UI changes
 
 ### Testing
 
@@ -260,6 +316,7 @@ npm run test:report
 - Browser lifecycle management
 - Authentication and session validation
 - Headless mode switching
+- **Article retrieval** (NEW v1.2): Tab-based scraping, status tagging, dual link formats
 
 #### Unit/Integration Tests (Jest)
 ```bash
