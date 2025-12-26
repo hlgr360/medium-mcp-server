@@ -223,11 +223,62 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
   - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
   - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
   - **Current editor selectors (v1.2)**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
-  - **Debugging selector changes**:
-    - Login page: `npx ts-node scripts/debug-login.ts`
-    - Articles page: `npx ts-node scripts/debug-articles.ts` or `npx ts-node scripts/debug-articles-detailed.ts`
-    - Editor page: `npx ts-node scripts/debug-editor-wait.ts`
-    - Test extraction: `npx ts-node scripts/test-get-articles-simple.ts`
+
+### Debugging Selector Changes
+
+When Medium updates their UI and selectors break, follow this workflow:
+
+**Step 1: Identify the broken functionality**
+- Login detection → Use `scripts/debug-login.ts`
+- Article retrieval → Use `scripts/debug-articles-detailed.ts`
+- Article publishing → Use `scripts/debug-editor-wait.ts`
+- Publish modal/tags → Use `scripts/debug-publish-modal.ts`
+
+**Step 2: Run the debug script**
+```bash
+# All debug scripts open visible browser and output detailed analysis
+npx ts-node scripts/debug-login.ts          # Login page selectors
+npx ts-node scripts/debug-articles-detailed.ts  # Article list DOM structure
+npx ts-node scripts/debug-editor-wait.ts    # Editor field selectors
+npx ts-node scripts/debug-publish-modal.ts  # Publish modal inputs
+```
+
+**Step 3: Analyze the output**
+- Look for `data-testid` attributes (Medium's preferred approach)
+- Check button text, aria-labels, and role attributes
+- Identify contenteditable elements for editors
+- Note class names as fallback options
+- Screenshots saved to project root for visual reference
+
+**Step 4: Update src/browser-client.ts**
+- Replace old selectors with new ones
+- Keep fallback selectors in arrays for robustness
+- Add comment with date: `// Updated Dec 2025 - Medium changed selector`
+- Update both the selector and any related wait conditions
+
+**Step 5: Test the fix**
+```bash
+# Test scripts to validate fixes
+npx ts-node scripts/test-get-articles-simple.ts  # Verify article retrieval
+npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation
+npx ts-node scripts/test-login-flow.ts           # Verify login detection
+```
+
+**Step 6: Update documentation**
+- Update current selector lists in CLAUDE.md (this file)
+- Update README.md selector documentation
+- Add to "Recent Selector Changes" section with date
+- Update any code comments in browser-client.ts
+
+**Debug Script Reference:**
+- `debug-login.ts` - Analyzes login page, shows all buttons/indicators
+- `debug-articles-detailed.ts` - Deep analysis of article list table structure
+- `debug-tab-navigation.ts` - Tests tab detection and clicking
+- `debug-editor-wait.ts` - Waits 15s for editor, shows all contenteditable elements
+- `debug-publish-modal.ts` - Analyzes publish modal after clicking Publish button
+- `test-get-articles-simple.ts` - Quick test of article retrieval
+- `test-publish-no-tags.ts` - Test draft creation without tags
+- `test-login-flow.ts` - Test login validation
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
 - **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues

@@ -236,10 +236,66 @@ tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
   - Uses `playwright-extra` with `puppeteer-extra-plugin-stealth`
   - No VPN needed for headless operation
 
-### Medium UI Changes
-- **Selectors outdated**: Medium occasionally changes their website structure
-  - **Latest update**: v1.2 (December 2025) - Changed `headerUserButton` → `headerUserIcon`
-  - **Solution**: Run debug script to find new selectors: `npx ts-node scripts/debug-login.ts`
+### Medium UI Changes - Debugging Selector Issues
+
+When Medium updates their website, selectors break. Here's how to fix them:
+
+#### Workflow for Fixing Broken Selectors
+
+1. **Identify which functionality broke** (login, article retrieval, publishing)
+2. **Run the appropriate debug script** (see table below)
+3. **Analyze the output** to find new selectors
+4. **Update `src/browser-client.ts`** with new selectors
+5. **Run the corresponding test** to verify the fix
+6. **Update documentation** (README.md, CLAUDE.md) with new selectors
+
+#### Debug Scripts by Functionality
+
+| **Functionality** | **Debug Script** | **Purpose** | **What It Shows** |
+|-------------------|------------------|-------------|-------------------|
+| **Login Detection** | `scripts/debug-login.ts` | Analyze login page selectors | Current login indicators, button text, data-testid values |
+| **Article List** | `scripts/debug-articles-detailed.ts` | Analyze articles page DOM | Table structure, tabs, link formats, article counts |
+| **Article List** | `scripts/debug-tab-navigation.ts` | Test tab clicking | Tab detection, navigation behavior |
+| **Article Editor** | `scripts/debug-editor-wait.ts` | Analyze editor selectors | Title/content fields, contenteditable elements, placeholders |
+| **Publish Modal** | `scripts/debug-publish-modal.ts` | Analyze publish modal | Tag inputs, publish buttons, modal structure |
+
+#### Test Scripts for Validation
+
+| **Test Script** | **Purpose** | **Expected Result** |
+|-----------------|-------------|---------------------|
+| `scripts/test-get-articles-simple.ts` | Test article retrieval | Lists all articles with status tags |
+| `scripts/test-publish-no-tags.ts` | Test draft creation | Successfully creates draft |
+| `scripts/test-login-flow.ts` | Test login detection | Confirms session is valid |
+
+#### How to Use Debug Scripts
+
+All scripts open a **visible browser window** and wait 60-90 seconds for manual inspection:
+
+```bash
+# Example: Debug login page
+npx ts-node scripts/debug-login.ts
+
+# Output shows:
+# - All buttons with their text and data-testid
+# - Elements that might indicate logged-in state
+# - Screenshot saved to debug-login.png
+# - Browser stays open for manual inspection
+```
+
+#### Recent Selector Changes (v1.2, Dec 2025)
+
+- **Login**: `headerUserButton` → `headerUserIcon`, `write-button` → `headerWriteButton`
+- **Articles**: `[data-testid="story-preview"]` → table-based scraping with tab detection
+- **Editor**: `[data-testid="richTextEditor"]` → `editorTitleParagraph` + `editorParagraphText`
+
+#### When Selectors Break
+
+1. Run debug script for affected area
+2. Look for `data-testid` attributes (Medium's preferred approach)
+3. Fall back to semantic selectors (class names, roles, aria-labels)
+4. Update both the primary selector AND fallback selectors in code
+5. Add comment with date of change (e.g., `// Updated Dec 2025`)
+
 - **Login blocked**: Use your regular browser to login first, then try again
 
 ### Common Errors
