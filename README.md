@@ -89,6 +89,16 @@ Add this to your Claude MCP configuration (`~/Library/Application Support/Claude
 
 ## Available MCP Tools
 
+This server exposes 5 MCP tools for Medium interaction:
+
+1. **`publish-article`** - Create article drafts with title and content
+2. **`get-my-articles`** - Retrieve all your Medium articles (drafts, published, etc.) with status tags
+3. **`get-article-content`** - Extract full content from any Medium article URL
+4. **`search-medium`** - Search Medium for articles by keywords
+5. **`login-to-medium`** - Manually trigger login process (opens browser)
+
+---
+
 ### 1. `publish-article`
 Create a new article draft on Medium
 ```typescript

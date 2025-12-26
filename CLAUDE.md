@@ -77,7 +77,12 @@ npm run test:all
 
 1. **index.ts** - MCP Server Entry Point
    - Implements `MediumMcpServer` class that orchestrates the entire server
-   - Registers 5 MCP tools: `publish-article`, `get-my-articles`, `get-article-content`, `search-medium`, `login-to-medium`
+   - Registers 5 MCP tools:
+     1. **`publish-article`**: Create article drafts with title and content (draft-only, no publish)
+     2. **`get-my-articles`**: Retrieve all user's Medium articles with status tags (draft/published/unlisted/etc.)
+     3. **`get-article-content`**: Extract full content from any Medium article URL
+     4. **`search-medium`**: Search Medium for articles by keywords
+     5. **`login-to-medium`**: Manually trigger login process (opens browser)
    - Handles server lifecycle (initialization, graceful shutdown via SIGINT/SIGTERM)
    - Uses stdio transport for MCP communication
    - Error handling pattern: All tool handlers wrap errors in `isError: true` response format
