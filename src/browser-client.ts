@@ -1380,14 +1380,13 @@ export class BrowserMediumClient {
     const lists = await this.page.evaluate(() => {
       const mediumLists: any[] = [];
 
-      // Strategy: Look for list containers
-      // Medium lists may be in various formats - try multiple selectors
+      // Strategy: Look for list containers with data-testid="readingList"
+      // This is the most reliable selector based on current Medium UI
       const listSelectors = [
-        'a[href*="/list/"]',                    // List links
-        '[data-testid="list-card"]',            // Test ID selector
-        'div[data-testid="list"]',              // Alternative
+        '[data-testid="readingList"]',          // Primary selector (current UI)
+        'a[href*="/list/"]',                    // List links (fallback)
+        '[data-testid="list-card"]',            // Alternative test ID
         '.js-listItem',                         // Classic selector
-        'article',                              // Generic article containers
       ];
 
       let listElements: NodeListOf<Element> | null = null;
@@ -1396,40 +1395,23 @@ export class BrowserMediumClient {
         const elements = document.querySelectorAll(selector);
         if (elements.length > 0) {
           listElements = elements;
+          console.error(`  Found ${elements.length} elements with selector: ${selector}`);
           break;
         }
       }
 
       if (!listElements || listElements.length === 0) {
+        console.error('  No list elements found with any selector');
         return [];
       }
 
       // Track seen list IDs to avoid duplicates
       const seenIds = new Set<string>();
 
-      listElements.forEach(listEl => {
+      listElements.forEach((listEl, index) => {
         try {
-          // Extract list URL and ID
-          let listUrl = '';
-          let listId = '';
-
-          // Try to find link with /list/ pattern
-          const linkEl = listEl.querySelector('a[href*="/list/"]') ||
-                         (listEl as HTMLAnchorElement).href?.includes('/list/') ? listEl as HTMLAnchorElement : null;
-
-          if (linkEl && (linkEl as HTMLAnchorElement).href) {
-            listUrl = (linkEl as HTMLAnchorElement).href.split('?')[0];
-            const idMatch = listUrl.match(/\/list\/([^/]+)/);
-            if (idMatch) {
-              listId = idMatch[1];
-            }
-          }
-
-          if (!listId || seenIds.has(listId)) return; // Skip duplicates
-          seenIds.add(listId);
-
-          // Extract list name
-          const nameSelectors = ['h1', 'h2', 'h3', '[data-testid="list-name"]', '.list-title'];
+          // Extract list name - check the container for headings
+          const nameSelectors = ['h2', 'h3', 'h1', '[data-testid="readingListName"]', '.list-title'];
           let name = '';
           for (const sel of nameSelectors) {
             const nameEl = listEl.querySelector(sel);
@@ -1439,7 +1421,42 @@ export class BrowserMediumClient {
             }
           }
 
-          if (!name) return; // Skip if no name
+          if (!name) {
+            console.error(`  List ${index}: No name found, skipping`);
+            return; // Skip if no name
+          }
+
+          // Extract list URL and ID from link inside or as the element itself
+          let listUrl = '';
+          let listId = '';
+
+          // Check if the element itself is a link
+          if ((listEl as HTMLAnchorElement).href?.includes('/list/')) {
+            listUrl = (listEl as HTMLAnchorElement).href.split('?')[0];
+          } else {
+            // Look for link inside the container
+            const linkEl = listEl.querySelector('a[href*="/list/"]');
+            if (linkEl && (linkEl as HTMLAnchorElement).href) {
+              listUrl = (linkEl as HTMLAnchorElement).href.split('?')[0];
+            }
+          }
+
+          if (!listUrl) {
+            console.error(`  List "${name}": No URL found, skipping`);
+            return;
+          }
+
+          // Extract list ID from URL
+          const idMatch = listUrl.match(/\/list\/([^?/]+)/);
+          if (idMatch) {
+            listId = idMatch[1];
+          }
+
+          if (!listId || seenIds.has(listId)) {
+            console.error(`  List "${name}": Duplicate or no ID, skipping`);
+            return; // Skip duplicates
+          }
+          seenIds.add(listId);
 
           // Extract description
           const descSelectors = ['p', '.list-description', '[data-testid="list-description"]'];
