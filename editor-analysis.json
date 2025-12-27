@@ -1,0 +1,17 @@
+{
+  "editableElements": [],
+  "headings": [],
+  "paragraphs": [],
+  "buttons": [
+    {
+      "index": 0,
+      "text": "Publish",
+      "data-testid": null,
+      "aria-label": null,
+      "classes": "button button--primary button--filled button--smaller button--withChrome u-accen"
+    }
+  ],
+  "testIds": [],
+  "slateElements": [],
+  "contentEditableElements": []
+}
