@@ -440,4 +440,155 @@ describe('MCP Tool Handler Methods', () => {
       closeSpy.mockRestore();
     });
   });
+
+  describe('get-feed tool (via getFeed method)', () => {
+    test('should validate feed category parameter', async () => {
+      const spy = jest.spyOn(client, 'getFeed');
+      spy.mockResolvedValue([]);
+
+      await client.getFeed('featured', 10);
+      expect(spy).toHaveBeenCalledWith('featured', 10);
+
+      await client.getFeed('for-you', 10);
+      expect(spy).toHaveBeenCalledWith('for-you', 10);
+
+      await client.getFeed('following', 10);
+      expect(spy).toHaveBeenCalledWith('following', 10);
+
+      spy.mockRestore();
+    });
+
+    test('should use default limit of 10', async () => {
+      const spy = jest.spyOn(client, 'getFeed');
+      spy.mockResolvedValue([]);
+
+      await client.getFeed('featured');
+      expect(spy).toHaveBeenCalledWith('featured', 10);
+
+      spy.mockRestore();
+    });
+
+    test('should return array of feed articles', async () => {
+      const spy = jest.spyOn(client, 'getFeed');
+      const mockArticles = [
+        {
+          title: 'Test Feed Article',
+          excerpt: 'This is an excerpt from the feed',
+          url: 'https://medium.com/@user/test-article',
+          author: 'Test Author',
+          publishDate: '2 days ago',
+          readTime: '5 min read'
+        }
+      ];
+      spy.mockResolvedValue(mockArticles);
+
+      const articles = await client.getFeed('featured', 5);
+      expect(articles).toEqual(mockArticles);
+      expect(articles[0].excerpt).toBeDefined();
+
+      spy.mockRestore();
+    });
+
+    test('should handle getFeed errors gracefully', async () => {
+      const spy = jest.spyOn(client, 'getFeed');
+      spy.mockRejectedValue(new Error('Feed unavailable'));
+
+      await expect(client.getFeed('featured')).rejects.toThrow('Feed unavailable');
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('get-lists tool (via getLists method)', () => {
+    test('should call getLists and return list metadata', async () => {
+      const spy = jest.spyOn(client, 'getLists');
+      const mockLists = [
+        {
+          id: 'abc123',
+          name: 'Reading List',
+          description: 'My favorite articles',
+          articleCount: 15,
+          url: 'https://medium.com/list/abc123'
+        }
+      ];
+      spy.mockResolvedValue(mockLists);
+
+      const lists = await client.getLists();
+      expect(lists).toEqual(mockLists);
+      expect(lists[0].id).toBe('abc123');
+      expect(lists[0].articleCount).toBe(15);
+
+      spy.mockRestore();
+    });
+
+    test('should handle empty lists result', async () => {
+      const spy = jest.spyOn(client, 'getLists');
+      spy.mockResolvedValue([]);
+
+      const lists = await client.getLists();
+      expect(lists).toEqual([]);
+
+      spy.mockRestore();
+    });
+
+    test('should handle getLists errors gracefully', async () => {
+      const spy = jest.spyOn(client, 'getLists');
+      spy.mockRejectedValue(new Error('Not logged in'));
+
+      await expect(client.getLists()).rejects.toThrow('Not logged in');
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('get-list-articles tool (via getListArticles method)', () => {
+    test('should validate listId parameter', async () => {
+      const spy = jest.spyOn(client, 'getListArticles');
+      spy.mockResolvedValue([]);
+
+      await client.getListArticles('test-list-id', 10);
+      expect(spy).toHaveBeenCalledWith('test-list-id', 10);
+
+      spy.mockRestore();
+    });
+
+    test('should use default limit of 10', async () => {
+      const spy = jest.spyOn(client, 'getListArticles');
+      spy.mockResolvedValue([]);
+
+      await client.getListArticles('list-id');
+      expect(spy).toHaveBeenCalledWith('list-id', 10);
+
+      spy.mockRestore();
+    });
+
+    test('should return array of articles from list', async () => {
+      const spy = jest.spyOn(client, 'getListArticles');
+      const mockArticles = [
+        {
+          title: 'List Article 1',
+          excerpt: 'Excerpt from list article',
+          url: 'https://medium.com/@user/article-1',
+          author: 'Author 1'
+        }
+      ];
+      spy.mockResolvedValue(mockArticles);
+
+      const articles = await client.getListArticles('list-123', 5);
+      expect(articles).toEqual(mockArticles);
+
+      spy.mockRestore();
+    });
+
+    test('should handle invalid listId error', async () => {
+      const spy = jest.spyOn(client, 'getListArticles');
+      spy.mockRejectedValue(new Error('List not found: invalid-id'));
+
+      await expect(
+        client.getListArticles('invalid-id')
+      ).rejects.toThrow('List not found');
+
+      spy.mockRestore();
+    });
+  });
 });

@@ -18,7 +18,7 @@ class MediumMcpServer {
     // Create MCP server instance
     this.server = new McpServer({
       name: "medium-mcp-server",
-      version: "1.2.0"
+      version: "1.3.0"
     });
 
     this.registerTools();
@@ -168,6 +168,126 @@ class MediumMcpServer {
               {
                 type: "text",
                 text: `Error searching articles: ${error.message}`
+              }
+            ]
+          };
+        }
+      }
+    );
+
+    // Tool for retrieving Medium feed articles
+    this.server.tool(
+      "get-feed",
+      "Retrieve article headers from a Medium feed (Featured, For You, or Following)",
+      {
+        category: z.enum(['featured', 'for-you', 'following'])
+          .describe("Feed category: 'featured', 'for-you', or 'following'"),
+        limit: z.number()
+          .int()
+          .positive()
+          .max(50)
+          .optional()
+          .default(10)
+          .describe("Maximum number of articles to return (default: 10, max: 50)")
+      },
+      async (args) => {
+        try {
+          const articles = await this.withBrowserSession(async () => {
+            return await this.mediumClient.getFeed(args.category, args.limit);
+          });
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(articles, null, 2)
+              }
+            ]
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Error retrieving feed: ${error.message}`
+              }
+            ]
+          };
+        }
+      }
+    );
+
+    // Tool for retrieving user's reading lists
+    this.server.tool(
+      "get-lists",
+      "Retrieve your saved Medium reading lists with metadata",
+      {},
+      async () => {
+        try {
+          const lists = await this.withBrowserSession(async () => {
+            return await this.mediumClient.getLists();
+          });
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(lists, null, 2)
+              }
+            ]
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Error retrieving lists: ${error.message}`
+              }
+            ]
+          };
+        }
+      }
+    );
+
+    // Tool for retrieving articles from a specific list
+    this.server.tool(
+      "get-list-articles",
+      "Retrieve article headers from a specific Medium reading list",
+      {
+        listId: z.string()
+          .min(1, "List ID is required")
+          .describe("The ID of the reading list (get from get-lists tool)"),
+        limit: z.number()
+          .int()
+          .positive()
+          .max(50)
+          .optional()
+          .default(10)
+          .describe("Maximum number of articles to return (default: 10, max: 50)")
+      },
+      async (args) => {
+        try {
+          const articles = await this.withBrowserSession(async () => {
+            return await this.mediumClient.getListArticles(args.listId, args.limit);
+          });
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(articles, null, 2)
+              }
+            ]
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Error retrieving list articles: ${error.message}`
               }
             ]
           };

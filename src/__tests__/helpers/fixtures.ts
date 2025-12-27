@@ -238,3 +238,48 @@ export const MOCK_HTML = {
     </html>
   `
 };
+
+/**
+ * Mock feed article data
+ */
+export const MOCK_FEED_ARTICLES = [
+  {
+    title: 'Understanding TypeScript Generics',
+    excerpt: 'A comprehensive guide to using generics in TypeScript for type-safe, reusable code. Learn the fundamentals and advanced patterns.',
+    url: 'https://medium.com/@dev/typescript-generics-abc123',
+    author: 'Jane Developer',
+    publishDate: '3 days ago',
+    readTime: '8 min read',
+    claps: 234,
+    imageUrl: 'https://miro.medium.com/max/1400/1*example.jpg'
+  },
+  {
+    title: 'Building Scalable APIs with Node.js',
+    excerpt: 'Best practices for designing and implementing scalable REST APIs using Node.js and Express framework.',
+    url: 'https://medium.com/@backend/scalable-apis-def456',
+    author: 'John Backend',
+    publishDate: 'Jan 15',
+    readTime: '12 min read',
+    claps: 1500
+  }
+];
+
+/**
+ * Mock reading list data
+ */
+export const MOCK_LISTS = [
+  {
+    id: 'tech-articles-xyz789',
+    name: 'Tech Articles',
+    description: 'My collection of technology and programming articles',
+    articleCount: 42,
+    url: 'https://medium.com/list/tech-articles-xyz789'
+  },
+  {
+    id: 'design-inspiration-abc123',
+    name: 'Design Inspiration',
+    description: 'UI/UX design articles and case studies',
+    articleCount: 28,
+    url: 'https://medium.com/list/design-inspiration-abc123'
+  }
+];

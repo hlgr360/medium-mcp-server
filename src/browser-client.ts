@@ -17,6 +17,37 @@ export interface MediumArticle {
   status?: 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission' | 'unknown';
 }
 
+/**
+ * Represents an article header visible on Medium feeds and lists.
+ * Contains only metadata visible without clicking into the article.
+ */
+export interface MediumFeedArticle {
+  title: string;           // Article headline
+  excerpt: string;         // Synopsis/preview text visible on feed
+  url: string;             // Full article URL
+  author?: string;         // Author name if visible
+  publishDate?: string;    // Publication date (e.g., "2 days ago", "Jan 15")
+  readTime?: string;       // Estimated read time (e.g., "5 min read")
+  claps?: number;          // Clap count if visible
+  imageUrl?: string;       // Featured image URL if visible
+}
+
+/**
+ * Represents a Medium reading list (collection).
+ */
+export interface MediumList {
+  id: string;              // List ID (extracted from URL)
+  name: string;            // List name/title
+  description?: string;    // List description if visible
+  articleCount?: number;   // Number of articles in list
+  url?: string;            // Full list URL
+}
+
+/**
+ * Feed category for get-feed tool.
+ */
+export type FeedCategory = 'featured' | 'for-you' | 'following';
+
 export interface PublishOptions {
   title: string;
   content: string;
@@ -1074,6 +1105,531 @@ export class BrowserMediumClient {
       console.error('❌ Session file corrupted:', error);
       return false;
     }
+  }
+
+  /**
+   * Retrieve article headers from a Medium feed.
+   * @param category - Feed category: 'featured', 'for-you', or 'following'
+   * @param limit - Maximum number of articles to return (default: 10)
+   * @returns Array of feed articles with title, excerpt, and metadata
+   */
+  async getFeed(category: FeedCategory, limit: number = 10): Promise<MediumFeedArticle[]> {
+    if (!this.page) throw new Error('Browser not initialized');
+
+    console.error(`📰 Fetching ${category} feed (limit: ${limit})...`);
+
+    // Determine navigation URL based on category
+    let feedUrl: string;
+    let needsTabClick = false;
+    let tabSelector = '';
+
+    switch (category) {
+      case 'featured':
+        feedUrl = 'https://medium.com/';
+        needsTabClick = true;
+        tabSelector = 'button:has-text("Featured"), a:has-text("Featured")';
+        break;
+      case 'for-you':
+        feedUrl = 'https://medium.com/';
+        needsTabClick = true;
+        tabSelector = 'button:has-text("For you"), a:has-text("For you")';
+        break;
+      case 'following':
+        feedUrl = 'https://medium.com/me/following-feed/all';
+        needsTabClick = false;
+        break;
+      default:
+        throw new Error(`Invalid feed category: ${category}`);
+    }
+
+    // Navigate to feed page
+    await this.page.goto(feedUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    await this.page.waitForTimeout(2000);
+
+    // Click tab if needed (Featured/For You on homepage)
+    if (needsTabClick) {
+      try {
+        console.error(`  🔍 Clicking ${category} tab...`);
+        const tab = this.page.locator(tabSelector).first();
+        await tab.click();
+        await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+          console.error('  ⚠️  Network idle timeout, continuing...');
+        });
+        await this.page.waitForTimeout(1500);
+      } catch (error) {
+        console.error(`  ⚠️  Failed to click tab, proceeding with default view: ${error}`);
+      }
+    }
+
+    // Extract article cards from feed
+    const articles = await this.page.evaluate((maxArticles: number) => {
+      const feedArticles: any[] = [];
+
+      // Strategy: Try multiple selectors for article cards (Medium UI varies)
+      const articleSelectors = [
+        'article',                           // Modern Medium layout
+        '[data-testid="story-preview"]',     // Test ID selector
+        '[data-testid="story-card"]',        // Alternative test ID
+        'div[role="article"]',               // Semantic HTML
+        '.js-postListItem',                  // Classic Medium
+        '.postArticle',                      // Older layout
+        '.streamItem'                        // Stream-based layout
+      ];
+
+      let cardElements: NodeListOf<Element> | null = null;
+
+      // Find which selector returns the most elements
+      for (const selector of articleSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          cardElements = elements;
+          break;
+        }
+      }
+
+      if (!cardElements || cardElements.length === 0) {
+        return [];
+      }
+
+      // Extract metadata from each card
+      cardElements.forEach((card, index) => {
+        if (feedArticles.length >= maxArticles) return;
+
+        try {
+          // Extract title
+          const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="story-title"]', '.graf--title'];
+          let title = '';
+          for (const sel of titleSelectors) {
+            const titleEl = card.querySelector(sel);
+            if (titleEl?.textContent?.trim()) {
+              title = titleEl.textContent.trim();
+              break;
+            }
+          }
+
+          if (!title) return; // Skip if no title
+
+          // Extract excerpt/synopsis
+          const excerptSelectors = [
+            '.story-excerpt',
+            '.post-excerpt',
+            '[data-testid="story-excerpt"]',
+            '.graf--p',
+            'p'
+          ];
+          let excerpt = '';
+          for (const sel of excerptSelectors) {
+            const excerptEl = card.querySelector(sel);
+            if (excerptEl?.textContent?.trim() && excerptEl.textContent.trim().length > 20) {
+              excerpt = excerptEl.textContent.trim().substring(0, 300);
+              break;
+            }
+          }
+
+          // Extract article URL
+          const linkSelectors = [
+            'a[href*="medium.com"][href*="-"]',
+            'a[href*="/@"]',
+            'a[data-href]',
+            'a'
+          ];
+          let url = '';
+          for (const sel of linkSelectors) {
+            const linkEl = card.querySelector(sel);
+            if (linkEl && (linkEl as HTMLAnchorElement).href) {
+              const href = (linkEl as HTMLAnchorElement).href;
+              if (href.includes('medium.com') && !href.includes('/search?') && !href.includes('/signin')) {
+                url = href.split('?')[0]; // Clean URL
+                break;
+              }
+            }
+          }
+
+          if (!url) return; // Skip if no valid URL
+
+          // Extract author
+          const authorSelectors = [
+            '[data-testid="story-author"]',
+            '.postMetaInline-authorLockup',
+            '.author-name',
+            'a[rel="author"]'
+          ];
+          let author = '';
+          for (const sel of authorSelectors) {
+            const authorEl = card.querySelector(sel);
+            if (authorEl?.textContent?.trim()) {
+              author = authorEl.textContent.trim();
+              break;
+            }
+          }
+
+          // Extract publish date
+          const dateText = card.textContent || '';
+          let publishDate = '';
+          const datePatterns = [
+            /(\d+\s+(hour|day|week|month)s?\s+ago)/i,
+            /([A-Z][a-z]+\s+\d+)/,  // "Jan 15"
+            /(\d+\s+min\s+ago)/i
+          ];
+          for (const pattern of datePatterns) {
+            const match = dateText.match(pattern);
+            if (match) {
+              publishDate = match[1];
+              break;
+            }
+          }
+
+          // Extract read time
+          let readTime = '';
+          const readTimeMatch = dateText.match(/(\d+\s+min\s+read)/i);
+          if (readTimeMatch) {
+            readTime = readTimeMatch[1];
+          }
+
+          // Extract claps (if visible)
+          let claps = 0;
+          const clapMatch = dateText.match(/(\d+(?:K|M)?)\s+claps?/i);
+          if (clapMatch) {
+            const clapStr = clapMatch[1];
+            if (clapStr.includes('K')) {
+              claps = parseFloat(clapStr) * 1000;
+            } else if (clapStr.includes('M')) {
+              claps = parseFloat(clapStr) * 1000000;
+            } else {
+              claps = parseInt(clapStr, 10);
+            }
+          }
+
+          // Extract featured image URL
+          let imageUrl = '';
+          const imgEl = card.querySelector('img');
+          if (imgEl && imgEl.src) {
+            imageUrl = imgEl.src;
+          }
+
+          feedArticles.push({
+            title,
+            excerpt,
+            url,
+            author,
+            publishDate,
+            readTime,
+            claps: claps || undefined,
+            imageUrl: imageUrl || undefined
+          });
+        } catch (error) {
+          console.error('Error extracting feed article:', error);
+        }
+      });
+
+      return feedArticles;
+    }, limit);
+
+    console.error(`  ✅ Extracted ${articles.length} article(s) from ${category} feed`);
+    return articles;
+  }
+
+  /**
+   * Retrieve user's saved reading lists.
+   * @returns Array of reading lists with metadata
+   */
+  async getLists(): Promise<MediumList[]> {
+    if (!this.page) throw new Error('Browser not initialized');
+
+    await this.ensureLoggedIn(); // Lists require authentication
+
+    console.error('📚 Fetching user reading lists...');
+
+    // Navigate to lists page
+    await this.page.goto('https://medium.com/me/lists', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    await this.page.waitForTimeout(2000);
+
+    // Extract lists from page
+    const lists = await this.page.evaluate(() => {
+      const mediumLists: any[] = [];
+
+      // Strategy: Look for list containers
+      // Medium lists may be in various formats - try multiple selectors
+      const listSelectors = [
+        'a[href*="/list/"]',                    // List links
+        '[data-testid="list-card"]',            // Test ID selector
+        'div[data-testid="list"]',              // Alternative
+        '.js-listItem',                         // Classic selector
+        'article',                              // Generic article containers
+      ];
+
+      let listElements: NodeListOf<Element> | null = null;
+
+      for (const selector of listSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          listElements = elements;
+          break;
+        }
+      }
+
+      if (!listElements || listElements.length === 0) {
+        return [];
+      }
+
+      // Track seen list IDs to avoid duplicates
+      const seenIds = new Set<string>();
+
+      listElements.forEach(listEl => {
+        try {
+          // Extract list URL and ID
+          let listUrl = '';
+          let listId = '';
+
+          // Try to find link with /list/ pattern
+          const linkEl = listEl.querySelector('a[href*="/list/"]') ||
+                         (listEl as HTMLAnchorElement).href?.includes('/list/') ? listEl as HTMLAnchorElement : null;
+
+          if (linkEl && (linkEl as HTMLAnchorElement).href) {
+            listUrl = (linkEl as HTMLAnchorElement).href.split('?')[0];
+            const idMatch = listUrl.match(/\/list\/([^/]+)/);
+            if (idMatch) {
+              listId = idMatch[1];
+            }
+          }
+
+          if (!listId || seenIds.has(listId)) return; // Skip duplicates
+          seenIds.add(listId);
+
+          // Extract list name
+          const nameSelectors = ['h1', 'h2', 'h3', '[data-testid="list-name"]', '.list-title'];
+          let name = '';
+          for (const sel of nameSelectors) {
+            const nameEl = listEl.querySelector(sel);
+            if (nameEl?.textContent?.trim()) {
+              name = nameEl.textContent.trim();
+              break;
+            }
+          }
+
+          if (!name) return; // Skip if no name
+
+          // Extract description
+          const descSelectors = ['p', '.list-description', '[data-testid="list-description"]'];
+          let description = '';
+          for (const sel of descSelectors) {
+            const descEl = listEl.querySelector(sel);
+            if (descEl?.textContent?.trim() && descEl.textContent.trim().length > 10) {
+              description = descEl.textContent.trim().substring(0, 200);
+              break;
+            }
+          }
+
+          // Extract article count
+          let articleCount: number | undefined;
+          const countMatch = listEl.textContent?.match(/(\d+)\s+(?:stories|articles)/i);
+          if (countMatch) {
+            articleCount = parseInt(countMatch[1], 10);
+          }
+
+          mediumLists.push({
+            id: listId,
+            name,
+            description: description || undefined,
+            articleCount: articleCount,
+            url: listUrl || `https://medium.com/list/${listId}`
+          });
+        } catch (error) {
+          console.error('Error extracting list:', error);
+        }
+      });
+
+      return mediumLists;
+    });
+
+    console.error(`  ✅ Found ${lists.length} reading list(s)`);
+    return lists;
+  }
+
+  /**
+   * Retrieve article headers from a specific reading list.
+   * @param listId - The list ID to fetch articles from
+   * @param limit - Maximum number of articles to return (default: 10)
+   * @returns Array of feed articles from the list
+   */
+  async getListArticles(listId: string, limit: number = 10): Promise<MediumFeedArticle[]> {
+    if (!this.page) throw new Error('Browser not initialized');
+
+    await this.ensureLoggedIn(); // Lists require authentication
+
+    console.error(`📋 Fetching articles from list ${listId} (limit: ${limit})...`);
+
+    // Navigate to list page
+    const listUrl = `https://medium.com/list/${listId}`;
+    await this.page.goto(listUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    await this.page.waitForTimeout(2000);
+
+    // Check if list exists (detect error page)
+    const isErrorPage = await this.page.evaluate(() => {
+      const pageText = document.body.textContent?.toLowerCase() || '';
+      return pageText.includes('not found') ||
+             pageText.includes('doesn\'t exist') ||
+             document.title.includes('404');
+    });
+
+    if (isErrorPage) {
+      throw new Error(`List not found: ${listId}`);
+    }
+
+    // Extract articles from list (similar to getFeed)
+    const articles = await this.page.evaluate((maxArticles: number) => {
+      const listArticles: any[] = [];
+
+      // Similar selectors as getFeed
+      const articleSelectors = [
+        'article',
+        '[data-testid="story-preview"]',
+        '[data-testid="list-article"]',
+        'div[role="article"]',
+        '.js-postListItem'
+      ];
+
+      let cardElements: NodeListOf<Element> | null = null;
+
+      for (const selector of articleSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          cardElements = elements;
+          break;
+        }
+      }
+
+      if (!cardElements || cardElements.length === 0) {
+        return [];
+      }
+
+      // Extract metadata (same logic as getFeed)
+      cardElements.forEach((card, index) => {
+        if (listArticles.length >= maxArticles) return;
+
+        try {
+          // Extract title
+          const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="story-title"]'];
+          let title = '';
+          for (const sel of titleSelectors) {
+            const titleEl = card.querySelector(sel);
+            if (titleEl?.textContent?.trim()) {
+              title = titleEl.textContent.trim();
+              break;
+            }
+          }
+
+          if (!title) return;
+
+          // Extract excerpt
+          const excerptSelectors = ['.story-excerpt', '.post-excerpt', '[data-testid="story-excerpt"]', '.graf--p', 'p'];
+          let excerpt = '';
+          for (const sel of excerptSelectors) {
+            const excerptEl = card.querySelector(sel);
+            if (excerptEl?.textContent?.trim() && excerptEl.textContent.trim().length > 20) {
+              excerpt = excerptEl.textContent.trim().substring(0, 300);
+              break;
+            }
+          }
+
+          // Extract URL
+          const linkSelectors = ['a[href*="medium.com"][href*="-"]', 'a[href*="/@"]', 'a'];
+          let url = '';
+          for (const sel of linkSelectors) {
+            const linkEl = card.querySelector(sel);
+            if (linkEl && (linkEl as HTMLAnchorElement).href) {
+              const href = (linkEl as HTMLAnchorElement).href;
+              if (href.includes('medium.com') && !href.includes('/search?') && !href.includes('/signin')) {
+                url = href.split('?')[0];
+                break;
+              }
+            }
+          }
+
+          if (!url) return;
+
+          // Extract author
+          const authorSelectors = ['[data-testid="story-author"]', '.author-name', 'a[rel="author"]'];
+          let author = '';
+          for (const sel of authorSelectors) {
+            const authorEl = card.querySelector(sel);
+            if (authorEl?.textContent?.trim()) {
+              author = authorEl.textContent.trim();
+              break;
+            }
+          }
+
+          // Extract publish date and read time (same as getFeed)
+          const cardText = card.textContent || '';
+          let publishDate = '';
+          const datePatterns = [
+            /(\d+\s+(hour|day|week|month)s?\s+ago)/i,
+            /([A-Z][a-z]+\s+\d+)/
+          ];
+          for (const pattern of datePatterns) {
+            const match = cardText.match(pattern);
+            if (match) {
+              publishDate = match[1];
+              break;
+            }
+          }
+
+          let readTime = '';
+          const readTimeMatch = cardText.match(/(\d+\s+min\s+read)/i);
+          if (readTimeMatch) {
+            readTime = readTimeMatch[1];
+          }
+
+          // Extract claps
+          let claps = 0;
+          const clapMatch = cardText.match(/(\d+(?:K|M)?)\s+claps?/i);
+          if (clapMatch) {
+            const clapStr = clapMatch[1];
+            if (clapStr.includes('K')) {
+              claps = parseFloat(clapStr) * 1000;
+            } else if (clapStr.includes('M')) {
+              claps = parseFloat(clapStr) * 1000000;
+            } else {
+              claps = parseInt(clapStr, 10);
+            }
+          }
+
+          // Extract image
+          let imageUrl = '';
+          const imgEl = card.querySelector('img');
+          if (imgEl?.src) {
+            imageUrl = imgEl.src;
+          }
+
+          listArticles.push({
+            title,
+            excerpt,
+            url,
+            author,
+            publishDate,
+            readTime,
+            claps: claps || undefined,
+            imageUrl: imageUrl || undefined
+          });
+        } catch (error) {
+          console.error('Error extracting list article:', error);
+        }
+      });
+
+      return listArticles;
+    }, limit);
+
+    console.error(`  ✅ Extracted ${articles.length} article(s) from list`);
+    return articles;
   }
 
   async close(): Promise<void> {
