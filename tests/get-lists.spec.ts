@@ -55,7 +55,8 @@ test.describe('getLists() E2E', () => {
 
         // Optional fields
         if (list.url) {
-          expect(list.url).toMatch(/medium\.com\/list\//);
+          // URL format: https://medium.com/@username/list/list-id
+          expect(list.url).toMatch(/medium\.com\/@[^\/]+\/list\//);
         }
         if (list.articleCount !== undefined) {
           expect(typeof list.articleCount).toBe('number');

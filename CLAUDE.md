@@ -223,6 +223,8 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
   - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
   - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
   - **Current editor selectors (v1.2)**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
+  - **Current lists selectors (v1.3.0)**: `[data-testid="readingList"]` (primary), fallback to `a[href*="/list/"]`
+  - **Current feed/list article selectors (v1.3.0)**: `article`, `[data-testid="story-preview"]`, title from `h1/h2/h3`, URL from title link (not first link)
 
 ### Debugging Selector Changes
 
@@ -234,6 +236,8 @@ When Medium updates their UI and selectors break, follow this workflow:
 - Article publishing → Use `scripts/debug-editor-page.ts` or `scripts/debug-editor-wait.ts`
 - Publish flow/selectors → Use `scripts/debug-publish-flow.ts`
 - Publish modal/tags → Use `scripts/debug-publish-modal.ts`
+- Lists page → Use `scripts/debug-lists-page.ts` (v1.3.0+)
+- Individual list → Use `scripts/debug-single-list.ts` (v1.3.0+)
 
 **Step 2: Run the debug script**
 ```bash
@@ -263,6 +267,8 @@ npx ts-node scripts/debug-publish-modal.ts      # Publish modal inputs
 ```bash
 # Test scripts to validate fixes
 npx ts-node scripts/test-get-articles-simple.ts  # Verify article retrieval
+npx ts-node scripts/test-get-lists.ts            # Verify list retrieval (v1.3.0+)
+npx ts-node scripts/test-list-articles.ts        # Verify list article retrieval (v1.3.0+)
 npx ts-node scripts/test-publish-article.ts      # Verify draft creation (with tags)
 npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation (no tags)
 npx ts-node scripts/test-login-flow.ts           # Verify login detection
@@ -282,7 +288,11 @@ npx ts-node scripts/test-login-flow.ts           # Verify login detection
 - `debug-editor-wait.ts` - Waits 15s for editor, shows all contenteditable elements
 - `debug-publish-flow.ts` - Tests all selectors for editor fields, title, content, publish buttons
 - `debug-publish-modal.ts` - Analyzes publish modal after clicking Publish button
+- `debug-lists-page.ts` - Analyzes lists page structure, shows all list elements and data-testids (NEW in v1.3.0)
+- `debug-single-list.ts` - Tests navigation to individual list pages, validates URLs (NEW in v1.3.0)
 - `test-get-articles-simple.ts` - Quick test of article retrieval
+- `test-get-lists.ts` - Tests getLists() and displays all found lists with details (NEW in v1.3.0)
+- `test-list-articles.ts` - Tests getListArticles() with URL validation (NEW in v1.3.0)
 - `test-publish-article.ts` - E2E test of publishArticle() with tags
 - `test-publish-no-tags.ts` - Test draft creation without tags (simpler test)
 - `test-login-flow.ts` - Test login validation
