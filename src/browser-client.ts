@@ -1229,22 +1229,48 @@ export class BrowserMediumClient {
             }
           }
 
-          // Extract article URL
-          const linkSelectors = [
-            'a[href*="medium.com"][href*="-"]',
-            'a[href*="/@"]',
-            'a[data-href]',
-            'a'
-          ];
+          // Extract article URL (prefer article link over publication link)
           let url = '';
-          for (const sel of linkSelectors) {
-            const linkEl = card.querySelector(sel);
-            if (linkEl && (linkEl as HTMLAnchorElement).href) {
-              const href = (linkEl as HTMLAnchorElement).href;
-              if (href.includes('medium.com') && !href.includes('/search?') && !href.includes('/signin')) {
-                url = href.split('?')[0]; // Clean URL
-                break;
+
+          // Strategy 1: Try to get link from title element (most reliable)
+          for (const sel of titleSelectors) {
+            const titleEl = card.querySelector(sel);
+            if (titleEl) {
+              const titleLink = titleEl.closest('a') || titleEl.querySelector('a');
+              if (titleLink && (titleLink as HTMLAnchorElement).href) {
+                const href = (titleLink as HTMLAnchorElement).href;
+                if (href.includes('medium.com') && href.includes('-') &&
+                    !href.includes('/search?') && !href.includes('/signin')) {
+                  url = href.split('?')[0];
+                  break;
+                }
               }
+            }
+          }
+
+          // Strategy 2: Find all links and pick the article link (not publication link)
+          if (!url) {
+            const allLinks = Array.from(card.querySelectorAll('a'));
+            const articleLinks = allLinks
+              .map(link => (link as HTMLAnchorElement).href)
+              .filter(href => {
+                if (!href || !href.includes('medium.com')) return false;
+                if (href.includes('/search?') || href.includes('/signin')) return false;
+
+                // Article URLs have format: domain/@author/article-slug-id or domain/article-slug-id
+                // Publication URLs are just: domain/@publication or domain/
+                const urlParts = href.split('medium.com')[1] || '';
+
+                // Must have a hyphen (article slug) and not end with just username
+                const hasArticleSlug = urlParts.includes('-');
+                const isNotJustProfile = !urlParts.match(/^\/@[^\/]+\/?$/);
+
+                return hasArticleSlug && isNotJustProfile;
+              });
+
+            // Pick the longest URL (article URLs are typically longer than publication URLs)
+            if (articleLinks.length > 0) {
+              url = articleLinks.sort((a, b) => b.length - a.length)[0].split('?')[0];
             }
           }
 
@@ -1541,17 +1567,48 @@ export class BrowserMediumClient {
             }
           }
 
-          // Extract URL
-          const linkSelectors = ['a[href*="medium.com"][href*="-"]', 'a[href*="/@"]', 'a'];
+          // Extract URL (prefer article link over publication link)
           let url = '';
-          for (const sel of linkSelectors) {
-            const linkEl = card.querySelector(sel);
-            if (linkEl && (linkEl as HTMLAnchorElement).href) {
-              const href = (linkEl as HTMLAnchorElement).href;
-              if (href.includes('medium.com') && !href.includes('/search?') && !href.includes('/signin')) {
-                url = href.split('?')[0];
-                break;
+
+          // Strategy 1: Try to get link from title element (most reliable)
+          for (const sel of titleSelectors) {
+            const titleEl = card.querySelector(sel);
+            if (titleEl) {
+              const titleLink = titleEl.closest('a') || titleEl.querySelector('a');
+              if (titleLink && (titleLink as HTMLAnchorElement).href) {
+                const href = (titleLink as HTMLAnchorElement).href;
+                if (href.includes('medium.com') && href.includes('-') &&
+                    !href.includes('/search?') && !href.includes('/signin')) {
+                  url = href.split('?')[0];
+                  break;
+                }
               }
+            }
+          }
+
+          // Strategy 2: Find all links and pick the article link (not publication link)
+          if (!url) {
+            const allLinks = Array.from(card.querySelectorAll('a'));
+            const articleLinks = allLinks
+              .map(link => (link as HTMLAnchorElement).href)
+              .filter(href => {
+                if (!href || !href.includes('medium.com')) return false;
+                if (href.includes('/search?') || href.includes('/signin')) return false;
+
+                // Article URLs have format: domain/@author/article-slug-id or domain/article-slug-id
+                // Publication URLs are just: domain/@publication or domain/
+                const urlParts = href.split('medium.com')[1] || '';
+
+                // Must have a hyphen (article slug) and not end with just username
+                const hasArticleSlug = urlParts.includes('-');
+                const isNotJustProfile = !urlParts.match(/^\/@[^\/]+\/?$/);
+
+                return hasArticleSlug && isNotJustProfile;
+              });
+
+            // Pick the longest URL (article URLs are typically longer than publication URLs)
+            if (articleLinks.length > 0) {
+              url = articleLinks.sort((a, b) => b.length - a.length)[0].split('?')[0];
             }
           }
 
