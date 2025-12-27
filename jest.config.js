@@ -28,6 +28,9 @@ module.exports = {
   // Reporters
   reporters: ['default'],
 
+  // Run tests sequentially (single worker)
+  maxWorkers: 1,
+
   // Timeouts and cleanup
   testTimeout: 10000,
   clearMocks: true,
