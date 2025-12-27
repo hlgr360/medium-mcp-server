@@ -1508,8 +1508,35 @@ export class BrowserMediumClient {
 
     console.error(`📋 Fetching articles from list ${listId} (limit: ${limit})...`);
 
-    // Navigate to list page
-    const listUrl = `https://medium.com/list/${listId}`;
+    // First, navigate to /me/lists to find the full URL for this list
+    // (List URLs require username: /@username/list/list-id, not /me/list/list-id)
+    await this.page.goto('https://medium.com/me/lists', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+    await this.page.waitForTimeout(2000);
+
+    // Find the list URL from the lists page
+    const listUrl = await this.page.evaluate((targetListId: string) => {
+      const allLinks = Array.from(document.querySelectorAll('a[href*="/list/"]'));
+      for (const link of allLinks) {
+        const href = (link as HTMLAnchorElement).href;
+        // Check if this link matches our list ID
+        const idMatch = href.match(/\/list\/([^?\/]+)/);
+        if (idMatch && idMatch[1] === targetListId) {
+          return href.split('?')[0]; // Return URL without query params
+        }
+      }
+      return null;
+    }, listId);
+
+    if (!listUrl) {
+      throw new Error(`List not found: ${listId}`);
+    }
+
+    console.error(`  Found list URL: ${listUrl}`);
+
+    // Navigate to the list page using the full URL
     await this.page.goto(listUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 30000
