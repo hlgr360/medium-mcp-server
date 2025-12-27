@@ -231,16 +231,19 @@ When Medium updates their UI and selectors break, follow this workflow:
 **Step 1: Identify the broken functionality**
 - Login detection → Use `scripts/debug-login.ts`
 - Article retrieval → Use `scripts/debug-articles-detailed.ts`
-- Article publishing → Use `scripts/debug-editor-wait.ts`
+- Article publishing → Use `scripts/debug-editor-page.ts` or `scripts/debug-editor-wait.ts`
+- Publish flow/selectors → Use `scripts/debug-publish-flow.ts`
 - Publish modal/tags → Use `scripts/debug-publish-modal.ts`
 
 **Step 2: Run the debug script**
 ```bash
 # All debug scripts open visible browser and output detailed analysis
-npx ts-node scripts/debug-login.ts          # Login page selectors
+npx ts-node scripts/debug-login.ts              # Login page selectors
 npx ts-node scripts/debug-articles-detailed.ts  # Article list DOM structure
-npx ts-node scripts/debug-editor-wait.ts    # Editor field selectors
-npx ts-node scripts/debug-publish-modal.ts  # Publish modal inputs
+npx ts-node scripts/debug-editor-page.ts        # Editor DOM analysis (saves JSON)
+npx ts-node scripts/debug-editor-wait.ts        # Editor field selectors (15s wait)
+npx ts-node scripts/debug-publish-flow.ts       # Publish flow selectors
+npx ts-node scripts/debug-publish-modal.ts      # Publish modal inputs
 ```
 
 **Step 3: Analyze the output**
@@ -260,7 +263,8 @@ npx ts-node scripts/debug-publish-modal.ts  # Publish modal inputs
 ```bash
 # Test scripts to validate fixes
 npx ts-node scripts/test-get-articles-simple.ts  # Verify article retrieval
-npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation
+npx ts-node scripts/test-publish-article.ts      # Verify draft creation (with tags)
+npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation (no tags)
 npx ts-node scripts/test-login-flow.ts           # Verify login detection
 ```
 
@@ -274,10 +278,13 @@ npx ts-node scripts/test-login-flow.ts           # Verify login detection
 - `debug-login.ts` - Analyzes login page, shows all buttons/indicators
 - `debug-articles-detailed.ts` - Deep analysis of article list table structure
 - `debug-tab-navigation.ts` - Tests tab detection and clicking
+- `debug-editor-page.ts` - Comprehensive editor DOM analysis, saves to editor-analysis.json
 - `debug-editor-wait.ts` - Waits 15s for editor, shows all contenteditable elements
+- `debug-publish-flow.ts` - Tests all selectors for editor fields, title, content, publish buttons
 - `debug-publish-modal.ts` - Analyzes publish modal after clicking Publish button
 - `test-get-articles-simple.ts` - Quick test of article retrieval
-- `test-publish-no-tags.ts` - Test draft creation without tags
+- `test-publish-article.ts` - E2E test of publishArticle() with tags
+- `test-publish-no-tags.ts` - Test draft creation without tags (simpler test)
 - `test-login-flow.ts` - Test login validation
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)

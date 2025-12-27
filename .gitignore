@@ -102,6 +102,9 @@ improved-login.js
 *.jpeg
 *.gif
 
+# Debug script output files
+editor-analysis.json
+
 # macOS
 .DS_Store
 
