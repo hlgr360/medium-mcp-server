@@ -138,10 +138,12 @@ Retrieve ALL your Medium articles (drafts, published, unlisted, etc.)
 Retrieve article headers from Medium feeds (NEW in v1.3.0)
 ```typescript
 {
-  category: 'featured' | 'for-you' | 'following',  // Feed category
-  limit?: number  // Max articles to return (default: 10, max: 50)
+  category: 'featured' | 'for-you' | 'following' | 'all',  // Feed category
+  limit?: number  // Max articles per feed (default: 10, max: 50)
 }
 // Returns: Array of articles with title, excerpt, url, author, publishDate, readTime
+// When using 'all': fetches from all 3 feeds, returns up to limit*3 articles
+// Each article includes feedCategory field indicating its source feed
 // Use the 'url' field with get-article-content to read full articles
 ```
 
@@ -225,18 +227,23 @@ Claude: Uses publish-article tool →
 
 ### Example 2: Discovering and Reading Articles (NEW in v1.3.0)
 ```
-User: "Show me the latest articles from my For You feed and read the first one"
+User: "Show me the latest articles from all my feeds"
 
 Claude:
-1. Uses get-feed tool with category='for-you', limit=10 →
+1. Uses get-feed tool with category='all', limit=5 →
    Returns: [
-     { title: "Understanding AI", url: "https://medium.com/@author/understanding-ai-abc123", ... },
-     { title: "Machine Learning Basics", url: "https://medium.com/@dev/ml-basics-xyz789", ... },
+     { title: "AI Trends", url: "...", feedCategory: "featured" },
+     { title: "ML Guide", url: "...", feedCategory: "featured" },
+     ...
+     { title: "Python Tips", url: "...", feedCategory: "for-you" },
+     ...
+     { title: "Tech News", url: "...", feedCategory: "following" },
      ...
    ]
+   (Up to 15 articles: 5 from Featured + 5 from For You + 5 from Following)
 
-2. Uses get-article-content tool with url from step 1 →
-   Returns: Full article content of "Understanding AI"
+2. Articles are tagged with feedCategory for easy filtering
+3. Use get-article-content tool with any url to read full content
 ```
 
 ### Example 3: Working with Reading Lists

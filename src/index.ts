@@ -178,17 +178,17 @@ class MediumMcpServer {
     // Tool for retrieving Medium feed articles
     this.server.tool(
       "get-feed",
-      "Retrieve article headers from a Medium feed (Featured, For You, or Following)",
+      "Retrieve article headers from a Medium feed (Featured, For You, Following, or All)",
       {
-        category: z.enum(['featured', 'for-you', 'following'])
-          .describe("Feed category: 'featured', 'for-you', or 'following'"),
+        category: z.enum(['featured', 'for-you', 'following', 'all'])
+          .describe("Feed category: 'featured', 'for-you', 'following', or 'all' (fetches from all feeds with articles tagged by source)"),
         limit: z.number()
           .int()
           .positive()
           .max(50)
           .optional()
           .default(10)
-          .describe("Maximum number of articles to return (default: 10, max: 50)")
+          .describe("Maximum number of articles per feed to return (default: 10, max: 50). When using 'all', returns up to limit*3 articles.")
       },
       async (args) => {
         try {

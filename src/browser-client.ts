@@ -30,6 +30,7 @@ export interface MediumFeedArticle {
   readTime?: string;       // Estimated read time (e.g., "5 min read")
   claps?: number;          // Clap count if visible
   imageUrl?: string;       // Featured image URL if visible
+  feedCategory?: FeedCategory; // Source feed (when using 'all' category)
 }
 
 /**
@@ -45,8 +46,9 @@ export interface MediumList {
 
 /**
  * Feed category for get-feed tool.
+ * Use 'all' to fetch from all feeds with articles tagged by source.
  */
-export type FeedCategory = 'featured' | 'for-you' | 'following';
+export type FeedCategory = 'featured' | 'for-you' | 'following' | 'all';
 
 export interface PublishOptions {
   title: string;
@@ -1117,6 +1119,30 @@ export class BrowserMediumClient {
     if (!this.page) throw new Error('Browser not initialized');
 
     console.error(`📰 Fetching ${category} feed (limit: ${limit})...`);
+
+    // Handle 'all' category by fetching from all feeds
+    if (category === 'all') {
+      console.error('  📚 Fetching from all feeds...');
+      const categories: Array<'featured' | 'for-you' | 'following'> = ['featured', 'for-you', 'following'];
+      const allArticles: MediumFeedArticle[] = [];
+
+      for (const cat of categories) {
+        try {
+          console.error(`  📰 Fetching ${cat} feed...`);
+          const articles = await this.getFeed(cat, limit);
+          // Tag each article with its source feed
+          articles.forEach(article => article.feedCategory = cat);
+          allArticles.push(...articles);
+          console.error(`  ✅ Got ${articles.length} article(s) from ${cat}`);
+        } catch (error: any) {
+          console.error(`  ⚠️  Failed to fetch ${cat} feed: ${error.message}`);
+          // Continue with other feeds even if one fails
+        }
+      }
+
+      console.error(`  ✅ Total: ${allArticles.length} article(s) from all feeds`);
+      return allArticles;
+    }
 
     // Determine navigation URL based on category
     let feedUrl: string;
