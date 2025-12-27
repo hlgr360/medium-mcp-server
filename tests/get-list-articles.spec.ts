@@ -78,6 +78,7 @@ test.describe('getListArticles() E2E', () => {
 
       console.log(`✅ Retrieved ${articles.length} article(s) from list`);
       console.log(`   Sample: "${articles[0].title.substring(0, 50)}..."`);
+      console.log(`   URL: ${articles[0].url}`);
     } else {
       console.log('ℹ️  List is empty (no articles)');
     }

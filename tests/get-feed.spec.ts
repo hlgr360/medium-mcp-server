@@ -67,6 +67,7 @@ test.describe('getFeed() E2E', () => {
 
         console.log(`✅ ${category}: Retrieved ${articles.length} article(s)`);
         console.log(`   Sample: "${articles[0].title.substring(0, 50)}..."`);
+        console.log(`   URL: ${articles[0].url}`);
       } else {
         console.log(`ℹ️  ${category}: No articles found (this may be normal)`);
       }

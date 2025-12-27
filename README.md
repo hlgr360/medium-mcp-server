@@ -19,7 +19,10 @@ Want to understand the full story behind Medium MCP? Check out the comprehensive
 - 🤖 **Browser automation** for Medium interaction
 - 📝 **Article publishing** with title, content, and tags
 - 📚 **Retrieve your articles** from your Medium profile
+- 📰 **Browse Medium feeds** - Featured, For You, and Following feeds (NEW in v1.3.0)
+- 📋 **Manage reading lists** - Browse and access your saved collections (NEW in v1.3.0)
 - 🔍 **Search Medium articles** by keywords
+- 📖 **Read full articles** - Extract content from any Medium URL
 - 💾 **Session persistence** - login once, use everywhere
 - 🎯 **Claude integration** via Model Context Protocol
 
@@ -89,13 +92,23 @@ Add this to your Claude MCP configuration (`~/Library/Application Support/Claude
 
 ## Available MCP Tools
 
-This server exposes 5 MCP tools for Medium interaction:
+This server exposes 8 MCP tools for Medium interaction:
 
+### Content Creation & Management
 1. **`publish-article`** - Create article drafts with title and content
 2. **`get-my-articles`** - Retrieve all your Medium articles (drafts, published, etc.) with status tags
-3. **`get-article-content`** - Extract full content from any Medium article URL
-4. **`search-medium`** - Search Medium for articles by keywords
-5. **`login-to-medium`** - Manually trigger login process (opens browser)
+
+### Content Discovery
+3. **`get-feed`** - Retrieve article headers from Medium feeds (Featured, For You, Following)
+4. **`get-lists`** - Retrieve your saved Medium reading lists
+5. **`get-list-articles`** - Retrieve articles from a specific reading list
+6. **`search-medium`** - Search Medium for articles by keywords
+
+### Content Reading
+7. **`get-article-content`** - Extract full content from any Medium article URL
+
+### Authentication
+8. **`login-to-medium`** - Manually trigger login process (opens browser)
 
 ---
 
@@ -121,15 +134,37 @@ Retrieve ALL your Medium articles (drafts, published, unlisted, etc.)
 // NEW in v1.2: Returns articles from ALL tabs with status tagging
 ```
 
-### 3. `get-article-content`
-Get full content of any Medium article
+### 3. `get-feed`
+Retrieve article headers from Medium feeds (NEW in v1.3.0)
 ```typescript
 {
-  url: string  // Medium article URL
+  category: 'featured' | 'for-you' | 'following',  // Feed category
+  limit?: number  // Max articles to return (default: 10, max: 50)
 }
+// Returns: Array of articles with title, excerpt, url, author, publishDate, readTime
+// Use the 'url' field with get-article-content to read full articles
 ```
 
-### 4. `search-medium`
+### 4. `get-lists`
+Retrieve your saved Medium reading lists (NEW in v1.3.0)
+```typescript
+// No parameters needed
+// Returns: Array of lists with id, name, description, articleCount, url
+// Use the 'id' field with get-list-articles to retrieve articles
+```
+
+### 5. `get-list-articles`
+Retrieve articles from a specific reading list (NEW in v1.3.0)
+```typescript
+{
+  listId: string,  // List ID from get-lists
+  limit?: number   // Max articles to return (default: 10, max: 50)
+}
+// Returns: Array of articles with title, excerpt, url, author, publishDate, readTime
+// Use the 'url' field with get-article-content to read full articles
+```
+
+### 6. `search-medium`
 Search Medium for articles by keywords
 ```typescript
 {
@@ -137,7 +172,15 @@ Search Medium for articles by keywords
 }
 ```
 
-### 5. `login-to-medium`
+### 7. `get-article-content`
+Get full content of any Medium article
+```typescript
+{
+  url: string  // Medium article URL (from get-feed, get-list-articles, or search-medium)
+}
+```
+
+### 8. `login-to-medium`
 Manually trigger login process
 ```typescript
 // No parameters needed
@@ -169,6 +212,7 @@ User Request → MCP Server → Playwright Browser → Medium Website → Respon
 
 ## Example Usage with Claude
 
+### Example 1: Creating a Draft Article
 ```
 User: "Create a draft article titled 'AI in 2025' with content about recent developments"
 
@@ -177,6 +221,39 @@ Claude: Uses publish-article tool →
 - Fills in title and content
 - Saves as draft
 - Returns success
+```
+
+### Example 2: Discovering and Reading Articles (NEW in v1.3.0)
+```
+User: "Show me the latest articles from my For You feed and read the first one"
+
+Claude:
+1. Uses get-feed tool with category='for-you', limit=10 →
+   Returns: [
+     { title: "Understanding AI", url: "https://medium.com/@author/understanding-ai-abc123", ... },
+     { title: "Machine Learning Basics", url: "https://medium.com/@dev/ml-basics-xyz789", ... },
+     ...
+   ]
+
+2. Uses get-article-content tool with url from step 1 →
+   Returns: Full article content of "Understanding AI"
+```
+
+### Example 3: Working with Reading Lists
+```
+User: "What articles are in my 'Tech Articles' list?"
+
+Claude:
+1. Uses get-lists tool →
+   Returns: [
+     { id: "tech-articles-xyz789", name: "Tech Articles", articleCount: 42, ... },
+     ...
+   ]
+
+2. Uses get-list-articles tool with listId='tech-articles-xyz789' →
+   Returns: Array of articles with titles, excerpts, and URLs
+
+3. (Optional) Uses get-article-content tool with specific URLs to read full articles
 ```
 
 ## Troubleshooting
