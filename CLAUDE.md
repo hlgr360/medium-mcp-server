@@ -77,7 +77,7 @@ npm run test:all
 
 1. **index.ts** - MCP Server Entry Point
    - Implements `MediumMcpServer` class that orchestrates the entire server
-   - Registers 8 MCP tools:
+   - Registers 9 MCP tools:
      1. **`publish-article`**: Create article drafts with title and content (draft-only, no publish)
      2. **`get-my-articles`**: Retrieve all user's Medium articles with status tags (draft/published/unlisted/etc.)
      3. **`get-article-content`**: Extract full content from any Medium article URL
@@ -85,7 +85,8 @@ npm run test:all
      5. **`get-feed`**: Retrieve article headers from Medium feeds (Featured, For You, Following, or All)
      6. **`get-lists`**: Retrieve user's saved Medium reading lists
      7. **`get-list-articles`**: Retrieve articles from a specific reading list
-     8. **`login-to-medium`**: Manually trigger login process (opens browser)
+     8. **`toggle-article-save`**: Save or unsave an article to a reading list (automatic state detection) (NEW in v1.4.0)
+     9. **`login-to-medium`**: Manually trigger login process (opens browser)
    - Handles server lifecycle (initialization, graceful shutdown via SIGINT/SIGTERM)
    - Uses stdio transport for MCP communication
    - Error handling pattern: All tool handlers wrap errors in `isError: true` response format
@@ -105,6 +106,7 @@ npm run test:all
      - `getFeed()`: Retrieves article headers from Medium feeds (featured/for-you/following/all)
      - `getLists()`: Retrieves user's saved reading lists from `/me/lists`
      - `getListArticles()`: Retrieves articles from a specific list by ID
+     - `toggleArticleSave()`: Navigates to article, clicks save button, handles list selection modal, toggles save state (NEW in v1.4.0)
 
 3. **Legacy Files (Unused)**
    - `auth.ts`: Old OAuth implementation for deprecated Medium API
@@ -305,6 +307,7 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
   - **Current editor selectors (v1.2)**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
   - **Current lists selectors (v1.3.0)**: `[data-testid="readingList"]` (primary), fallback to `a[href*="/list/"]`
   - **Current feed/list article selectors (v1.3.0)**: `article`, `[data-testid="story-preview"]`, title from `h1/h2/h3`, URL from title link (not first link)
+  - **Current save button selectors (v1.4.0)**: `[data-testid="headerBookmarkButton"]`, `[data-testid="footerBookmarkButton"]`, save modal: `.aew.gd.aex`, list checkboxes: `label input[type="checkbox"]` with matching text
 
 ### Debugging Selector Changes
 
@@ -371,6 +374,7 @@ npx ts-node scripts/test-login-flow.ts           # Verify login detection
 - `debug-publish-modal.ts` - Analyzes publish modal after clicking Publish button
 - `debug-lists-page.ts` - Analyzes lists page structure, shows all list elements and data-testids (NEW in v1.3.0)
 - `debug-single-list.ts` - Tests navigation to individual list pages, validates URLs (NEW in v1.3.0)
+- `debug-save-button.ts` - Analyzes article save button, shows modal structure for list selection (NEW in v1.4.0)
 - `test-get-articles-simple.ts` - Quick test of article retrieval
 - `test-get-lists.ts` - Tests getLists() and displays all found lists with details (NEW in v1.3.0)
 - `test-list-articles.ts` - Tests getListArticles() with URL validation (NEW in v1.3.0)
@@ -378,6 +382,7 @@ npx ts-node scripts/test-login-flow.ts           # Verify login detection
 - `test-publish-article.ts` - E2E test of publishArticle() with tags
 - `test-publish-no-tags.ts` - Test draft creation without tags (simpler test)
 - `test-login-flow.ts` - Test login validation
+- `test-save-article.ts` - E2E test of toggleArticleSave() with save and unsave operations (NEW in v1.4.0)
 - **Session debugging**: Delete `medium-session.json` to force re-login
 - **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
 - **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues

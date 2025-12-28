@@ -18,7 +18,7 @@ class MediumMcpServer {
     // Create MCP server instance
     this.server = new McpServer({
       name: "medium-mcp-server",
-      version: "1.3.0"
+      version: "1.4.0"
     });
 
     this.registerTools();
@@ -288,6 +288,46 @@ class MediumMcpServer {
               {
                 type: "text",
                 text: `Error retrieving list articles: ${error instanceof Error ? error.message : String(error)}`
+              }
+            ]
+          };
+        }
+      }
+    );
+
+    // Tool for toggling article save state (save/unsave to reading list)
+    this.server.tool(
+      "toggle-article-save",
+      "Save or unsave a Medium article to a specific reading list. Automatically detects current state and toggles it.",
+      {
+        articleUrl: z.string()
+          .url("Must be a valid URL")
+          .describe("The full URL of the Medium article to save/unsave"),
+        listId: z.string()
+          .min(1, "List ID is required")
+          .describe("The ID of the reading list (get from get-lists tool)")
+      },
+      async (args) => {
+        try {
+          const result = await this.withBrowserSession(async () => {
+            return await this.mediumClient.toggleArticleSave(args.articleUrl, args.listId);
+          });
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(result, null, 2)
+              }
+            ]
+          };
+        } catch (error) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Error toggling article save state: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };

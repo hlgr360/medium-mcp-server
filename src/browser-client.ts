@@ -45,6 +45,18 @@ export interface MediumList {
 }
 
 /**
+ * Result of toggle-article-save operation.
+ */
+export interface SaveArticleResult {
+  success: boolean;
+  action: 'saved' | 'unsaved';
+  listId: string;
+  listName: string;
+  articleUrl: string;
+  message: string;
+}
+
+/**
  * Feed category for get-feed tool.
  * Use 'all' to fetch from all feeds with articles tagged by source.
  */
@@ -1787,6 +1799,152 @@ export class BrowserMediumClient {
 
     console.error(`  ✅ Extracted ${articles.length} article(s) from list`);
     return articles;
+  }
+
+  /**
+   * Toggle save state of an article to a specific reading list.
+   * Automatically detects current state and toggles (save → unsave, unsave → save).
+   *
+   * @param articleUrl - Full URL of the Medium article
+   * @param listId - ID of the reading list (from getLists())
+   * @returns Result object with action taken
+   */
+  async toggleArticleSave(articleUrl: string, listId: string): Promise<SaveArticleResult> {
+    await this.ensureLoggedIn();
+
+    if (!this.page) {
+      throw new Error('Browser not initialized');
+    }
+
+    console.error(`🔖 Toggling save state for article: ${articleUrl}`);
+    console.error(`   Target list ID: ${listId}`);
+
+    // Step 1: Get all lists to find the name for this listId
+    const lists = await this.getLists();
+    const targetList = lists.find(l => l.id === listId);
+
+    if (!targetList) {
+      throw new Error(`List with ID "${listId}" not found. Use get-lists to see available lists.`);
+    }
+
+    console.error(`   Target list name: "${targetList.name}"`);
+
+    // Step 2: Navigate to article page
+    await this.page.goto(articleUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
+    });
+
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.CONTENT_WAIT);
+    console.error('📄 Article page loaded');
+
+    // Step 3: Find and click save/bookmark button
+    const saveButtonSelectors = [
+      '[data-testid="headerBookmarkButton"]',
+      '[data-testid="footerBookmarkButton"]',
+      'button[aria-label*="bookmark" i]',
+      'button[aria-label*="Add to list" i]'
+    ];
+
+    let saveButton = null;
+    for (const selector of saveButtonSelectors) {
+      try {
+        const button = this.page.locator(selector).first();
+        const isVisible = await button.isVisible({ timeout: BrowserMediumClient.TIMEOUTS.SHORT_WAIT });
+        if (isVisible) {
+          saveButton = button;
+          console.error(`✅ Found save button: ${selector}`);
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!saveButton) {
+      throw new Error('Save button not found on article page. Selectors may need updating.');
+    }
+
+    // Click the save button to open modal
+    await saveButton.click();
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
+    console.error('🖱️  Save button clicked');
+
+    // Step 4: Wait for modal to appear
+    const modalSelectors = [
+      '.aew.gd.aex', // Modal container classes from inspection
+      '[role="dialog"]',
+      'div:has(label input[type="checkbox"])'
+    ];
+
+    let modalAppeared = false;
+    for (const selector of modalSelectors) {
+      try {
+        await this.page.waitForSelector(selector, {
+          timeout: 3000,
+          state: 'visible'
+        });
+        modalAppeared = true;
+        console.error(`📋 List selection modal detected: ${selector}`);
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!modalAppeared) {
+      throw new Error('List selection modal did not appear after clicking save button.');
+    }
+
+    // Step 5: Find the checkbox for the target list by matching list name
+    const checkboxResult = await this.page.evaluate((listName: string) => {
+      // Find all label elements that contain checkboxes
+      const labels = Array.from(document.querySelectorAll('label'));
+
+      for (const label of labels) {
+        // Check if this label contains a checkbox and the list name
+        const checkbox = label.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const textElement = label.querySelector('p');
+
+        if (checkbox && textElement && textElement.textContent?.trim() === listName) {
+          // Found the matching list - return checkbox state and element info
+          return {
+            found: true,
+            wasChecked: checkbox.hasAttribute('checked'),
+            labelIndex: Array.from(document.querySelectorAll('label')).indexOf(label)
+          };
+        }
+      }
+
+      return { found: false, wasChecked: false, labelIndex: -1 };
+    }, targetList.name);
+
+    if (!checkboxResult.found) {
+      throw new Error(`List "${targetList.name}" not found in modal. Available lists may have changed.`);
+    }
+
+    const wasChecked = checkboxResult.wasChecked;
+    console.error(`   Current state: ${wasChecked ? 'saved' : 'not saved'}`);
+
+    // Step 6: Click the checkbox to toggle (click the label for better reliability)
+    const labels = this.page.locator('label');
+    const targetLabel = labels.nth(checkboxResult.labelIndex);
+    await targetLabel.click();
+    await this.page.waitForTimeout(1000);
+
+    const action: 'saved' | 'unsaved' = wasChecked ? 'unsaved' : 'saved';
+    console.error(`✅ Article ${action} ${action === 'saved' ? 'to' : 'from'} list "${targetList.name}"`);
+
+    // Modal closes automatically - no need to manually close
+
+    return {
+      success: true,
+      action,
+      listId: targetList.id,
+      listName: targetList.name,
+      articleUrl,
+      message: `Article ${action} ${action === 'saved' ? 'to' : 'from'} list "${targetList.name}"`
+    };
   }
 
   async close(): Promise<void> {

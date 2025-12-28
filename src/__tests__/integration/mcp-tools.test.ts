@@ -636,4 +636,114 @@ describe('MCP Tool Handler Methods', () => {
       spy.mockRestore();
     });
   });
+
+  describe('toggleArticleSave', () => {
+    test('should save article to list when not currently saved', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      const mockResult = {
+        success: true,
+        action: 'saved' as const,
+        listId: 'test-list-123',
+        listName: 'Reading list',
+        articleUrl: 'https://medium.com/@user/test-article',
+        message: 'Article saved to list "Reading list"'
+      };
+      spy.mockResolvedValue(mockResult);
+
+      const result = await client.toggleArticleSave(
+        'https://medium.com/@user/test-article',
+        'test-list-123'
+      );
+
+      expect(spy).toHaveBeenCalledWith(
+        'https://medium.com/@user/test-article',
+        'test-list-123'
+      );
+      expect(result.success).toBe(true);
+      expect(result.action).toBe('saved');
+      expect(result.listId).toBe('test-list-123');
+      expect(result.listName).toBe('Reading list');
+
+      spy.mockRestore();
+    });
+
+    test('should unsave article from list when currently saved', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      const mockResult = {
+        success: true,
+        action: 'unsaved' as const,
+        listId: 'test-list-123',
+        listName: 'ML Database',
+        articleUrl: 'https://medium.com/@user/test-article',
+        message: 'Article unsaved from list "ML Database"'
+      };
+      spy.mockResolvedValue(mockResult);
+
+      const result = await client.toggleArticleSave(
+        'https://medium.com/@user/test-article',
+        'test-list-123'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe('unsaved');
+      expect(result.listName).toBe('ML Database');
+
+      spy.mockRestore();
+    });
+
+    test('should handle invalid article URL error', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      spy.mockRejectedValue(new Error('Invalid article URL'));
+
+      await expect(
+        client.toggleArticleSave('invalid-url', 'test-list-123')
+      ).rejects.toThrow('Invalid article URL');
+
+      spy.mockRestore();
+    });
+
+    test('should handle non-existent list ID error', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      spy.mockRejectedValue(new Error('List with ID "fake-list" not found'));
+
+      await expect(
+        client.toggleArticleSave('https://medium.com/@user/test', 'fake-list')
+      ).rejects.toThrow('List with ID "fake-list" not found');
+
+      spy.mockRestore();
+    });
+
+    test('should handle save button not found error', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      spy.mockRejectedValue(new Error('Save button not found on article page'));
+
+      await expect(
+        client.toggleArticleSave('https://medium.com/@user/test', 'list-123')
+      ).rejects.toThrow('Save button not found');
+
+      spy.mockRestore();
+    });
+
+    test('should handle modal not appearing error', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      spy.mockRejectedValue(new Error('List selection modal did not appear'));
+
+      await expect(
+        client.toggleArticleSave('https://medium.com/@user/test', 'list-123')
+      ).rejects.toThrow('List selection modal did not appear');
+
+      spy.mockRestore();
+    });
+
+    test('should handle list not found in modal error', async () => {
+      const spy = jest.spyOn(client, 'toggleArticleSave');
+      spy.mockRejectedValue(new Error('List "ML Database" not found in modal'));
+
+      await expect(
+        client.toggleArticleSave('https://medium.com/@user/test', 'list-123')
+      ).rejects.toThrow('not found in modal');
+
+      spy.mockRestore();
+    });
+  });
 });
