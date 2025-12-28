@@ -169,22 +169,16 @@ export class BrowserMediumClient {
     this.page = await this.context.newPage();
   }
 
-  async ensureLoggedIn(): Promise<boolean> {
-    if (!this.page) throw new Error('Browser not initialized');
-
-    // Check if we have a saved session
-    const hasSession = existsSync(this.sessionPath);
-
-    if (hasSession) {
-      console.error('💾 Found existing session file, checking if still valid...');
-    } else {
-      console.error('🔐 No session file found, need to login');
+  /**
+   * Check if navigating to /m/signin redirects to another page (indicating logged in status).
+   * Fast method to detect if session is still valid.
+   * @returns true if already logged in, false if stayed on login page
+   */
+  private async checkLoginRedirect(): Promise<boolean> {
+    if (!this.page) {
+      throw new Error('Browser not initialized');
     }
 
-    // Smart approach: Navigate to /m/signin regardless of session status
-    // If already logged in, Medium might:
-    // 1. Auto-redirect to homepage, OR
-    // 2. Stay on /m/signin but show "welcome back" with login indicators visible
     console.error('🌐 Navigating to login page to check session...');
     await this.page.goto('https://medium.com/m/signin');
     await this.page.waitForLoadState('networkidle');
@@ -194,12 +188,19 @@ export class BrowserMediumClient {
     if (!currentUrl.includes('/m/signin')) {
       // We got redirected away from login page - we're logged in!
       console.error(`✅ Already logged in (redirected to ${currentUrl})`);
-      await this.saveSession();
       return true;
     }
 
-    // Still on /m/signin - but check if we're already logged in
-    // (Medium sometimes shows "welcome back" without redirecting)
+    return false;
+  }
+
+  /**
+   * Detect login state by checking for user UI elements on the current page.
+   * @returns true if login indicators found, false otherwise
+   */
+  private async detectLoginIndicators(): Promise<boolean> {
+    if (!this.page) return false;
+
     console.error('🔍 On signin page, checking if already logged in...');
 
     // Wait a moment for any dynamic content to load
@@ -216,36 +217,22 @@ export class BrowserMediumClient {
       try {
         await this.page.waitForSelector(selector, { timeout: BrowserMediumClient.TIMEOUTS.SHORT_WAIT });
         console.error(`✅ Already logged in (found ${selector} on signin page)`);
-        await this.saveSession();
         return true;
       } catch {
         // Try next selector
       }
     }
 
-    // Debug: Check what's actually on the page
-    const pageInfo = await this.page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.textContent?.trim());
-      const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(0, 10).map(el => el.getAttribute('data-testid'));
-      return { buttons, testIds, title: document.title, url: window.location.href };
-    });
-    console.error('📄 Page info:', JSON.stringify(pageInfo, null, 2));
+    return false;
+  }
 
-    // Definitely need to login
-    console.error('⏳ Not logged in, waiting for authentication...');
+  /**
+   * Wait for user to complete manual login in browser.
+   * @returns true if login successful, false if timeout
+   */
+  private async waitForUserLogin(): Promise<boolean> {
+    if (!this.page) return false;
 
-    // Check if browser is in headless mode - if so, we need to restart in visible mode
-    const isHeadless = this.browser?.contexts()[0]?.browser()?.isConnected();
-    if (this.isAuthenticatedSession && this.browser) {
-      // We're in headless mode but need user login - restart browser in visible mode
-      console.error('⚠️  Browser in headless mode but login required - restarting in visible mode...');
-      await this.close();
-      await this.initialize(false); // Force non-headless
-      await this.page!.goto('https://medium.com/m/signin');
-      await this.page!.waitForLoadState('networkidle');
-    }
-
-    // Wait for user to complete login
     console.error('⏳ Waiting for you to complete login in the browser...');
     console.error('');
     console.error('🔐 LOGIN INSTRUCTIONS:');
@@ -261,14 +248,76 @@ export class BrowserMediumClient {
 
     // Wait for successful login (user button appears)
     try {
-      await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: BrowserMediumClient.TIMEOUTS.LOGIN });
+      await this.page.waitForSelector(
+        '[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]',
+        { timeout: BrowserMediumClient.TIMEOUTS.LOGIN }
+      );
       console.error('✅ Login successful!');
-      await this.saveSession();
       return true;
     } catch (error) {
       console.error('❌ Login timeout. Please try again.');
       return false;
     }
+  }
+
+  /**
+   * Ensure user is logged into Medium.
+   * Uses fast redirect check, then waits for manual login if needed.
+   * @returns true if logged in successfully
+   */
+  async ensureLoggedIn(): Promise<boolean> {
+    if (!this.page) throw new Error('Browser not initialized');
+
+    // Check if we have a saved session
+    const hasSession = existsSync(this.sessionPath);
+    if (hasSession) {
+      console.error('💾 Found existing session file, checking if still valid...');
+    } else {
+      console.error('🔐 No session file found, need to login');
+    }
+
+    // Quick check via redirect
+    const alreadyLoggedIn = await this.checkLoginRedirect();
+    if (alreadyLoggedIn) {
+      await this.saveSession();
+      return true;
+    }
+
+    // Double-check with login indicators
+    const hasIndicators = await this.detectLoginIndicators();
+    if (hasIndicators) {
+      await this.saveSession();
+      return true;
+    }
+
+    // Debug: Check what's actually on the page
+    const pageInfo = await this.page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button')).slice(0, 5).map(b => b.textContent?.trim());
+      const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(0, 10).map(el => el.getAttribute('data-testid'));
+      return { buttons, testIds, title: document.title, url: window.location.href };
+    });
+    console.error('📄 Page info:', JSON.stringify(pageInfo, null, 2));
+
+    // Not logged in - need to restart browser in non-headless mode for user login
+    console.error('⏳ Not logged in, waiting for authentication...');
+
+    if (this.isAuthenticatedSession && this.browser) {
+      // We're in headless mode but need user login - restart browser in visible mode
+      console.error('⚠️  Browser in headless mode but login required - restarting in visible mode...');
+      await this.close();
+      await this.initialize(false); // Force non-headless
+      await this.page!.goto('https://medium.com/m/signin');
+      await this.page!.waitForLoadState('networkidle');
+    }
+
+    // Wait for user to login
+    const loginSuccess = await this.waitForUserLogin();
+
+    if (loginSuccess) {
+      await this.saveSession();
+    }
+
+    return loginSuccess;
   }
 
   /**
@@ -320,21 +369,14 @@ export class BrowserMediumClient {
     }
   }
 
-  async getUserArticles(): Promise<MediumArticle[]> {
-    if (!this.page) throw new Error('Browser not initialized');
+  /**
+   * Parse tab navigation to find tabs with articles.
+   * @returns Array of tab info: { name: string, count: number, selector: string }
+   */
+  private async parseArticleTabs(): Promise<Array<{ name: string; count: number; selector: string }>> {
+    if (!this.page) return [];
 
-    await this.ensureLoggedIn();
-
-    // Navigate to main stories page
-    console.error('📚 Fetching all user articles from all tabs...');
-    await this.page.goto('https://medium.com/me/stories', {
-      waitUntil: 'domcontentloaded',
-      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
-    });
-    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
-
-    // Parse tab names to find which tabs have articles
-    const tabsWithCounts = await this.page.evaluate(() => {
+    return await this.page.evaluate(() => {
       const tabs: Array<{ name: string; count: number; selector: string }> = [];
 
       // Find all tab elements (buttons or links)
@@ -359,13 +401,14 @@ export class BrowserMediumClient {
 
       return tabs;
     });
+  }
 
-    console.error(`Found tabs: ${tabsWithCounts.map(t => `${t.name}(${t.count})`).join(', ')}`);
-
-    // Collect all articles from all tabs
-    const allArticles: MediumArticle[] = [];
-
-    // Map tab names to status values
+  /**
+   * Map tab name to article status.
+   * @param tabName - Name of the tab (e.g., 'drafts', 'published')
+   * @returns Article status enum value
+   */
+  private mapTabToStatus(tabName: string): MediumArticle['status'] {
     const statusMap: { [key: string]: MediumArticle['status'] } = {
       'drafts': 'draft',
       'published': 'published',
@@ -374,6 +417,108 @@ export class BrowserMediumClient {
       'submissions': 'submission',
       'submission': 'submission'
     };
+
+    return statusMap[tabName] || 'unknown';
+  }
+
+  /**
+   * Extract articles from table rows on the current page.
+   * @param status - Status to assign to extracted articles
+   * @returns Array of articles with metadata
+   */
+  private async extractArticlesFromTable(status: string): Promise<MediumArticle[]> {
+    if (!this.page) return [];
+
+    return await this.page.evaluate((status: string) => {
+      const articles: any[] = [];
+      const rows = document.querySelectorAll('table tbody tr');
+
+      rows.forEach((row) => {
+        try {
+          const h2 = row.querySelector('h2');
+          if (!h2) return;
+
+          // Try both link formats:
+          // 1. Edit links (drafts): /p/{id}/edit
+          // 2. Public links (published): /@username/slug-title-{id}
+          let articleUrl = '';
+          let articleLink: HTMLAnchorElement | null = null;
+
+          // Try edit link first
+          articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/p/"][href*="/edit"]');
+          if (articleLink) {
+            // Extract ID from edit link and construct public URL
+            const match = articleLink.href.match(/\/p\/([a-f0-9]+)\//);
+            if (match) {
+              articleUrl = `https://medium.com/p/${match[1]}`;
+            }
+          } else {
+            // Try public link (for published articles)
+            articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/@"]');
+            if (articleLink) {
+              articleUrl = articleLink.href;
+            }
+          }
+
+          if (!articleUrl) return;
+
+          // Extract metadata
+          const rowText = row.textContent || '';
+          let publishDate = '';
+
+          // Try to extract date (different formats for different states)
+          const publishedMatch = rowText.match(/Published\s+([A-Za-z]+\s+\d+)/); // "Published May 13"
+          const updatedMatch = rowText.match(/Updated\s+([^·]+)/); // "Updated just now"
+          const readTimeMatch = rowText.match(/(\d+\s+min\s+read)/); // "7 min read"
+
+          if (publishedMatch) {
+            publishDate = publishedMatch[1];
+          } else if (updatedMatch) {
+            publishDate = updatedMatch[1].trim();
+          } else if (readTimeMatch) {
+            publishDate = readTimeMatch[1];
+          }
+
+          articles.push({
+            title: h2.textContent?.trim() || '',
+            content: '',
+            url: articleUrl,
+            publishDate,
+            tags: [],
+            status
+          });
+        } catch (error) {
+          console.error('Error extracting article:', error);
+        }
+      });
+
+      return articles;
+    }, status);
+  }
+
+  /**
+   * Retrieve all user's Medium articles across all tabs (drafts, published, etc.).
+   * @returns Array of articles with status tags
+   */
+  async getUserArticles(): Promise<MediumArticle[]> {
+    if (!this.page) throw new Error('Browser not initialized');
+
+    await this.ensureLoggedIn();
+
+    // Navigate to main stories page
+    console.error('📚 Fetching all user articles from all tabs...');
+    await this.page.goto('https://medium.com/me/stories', {
+      waitUntil: 'domcontentloaded',
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
+    });
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
+
+    // Parse tab names to find which tabs have articles
+    const tabsWithCounts = await this.parseArticleTabs();
+    console.error(`Found tabs: ${tabsWithCounts.map(t => `${t.name}(${t.count})`).join(', ')}`);
+
+    // Collect all articles from all tabs
+    const allArticles: MediumArticle[] = [];
 
     // Scrape each tab that has articles
     for (const tab of tabsWithCounts) {
@@ -401,71 +546,8 @@ export class BrowserMediumClient {
         await this.page.waitForTimeout(1000);
 
         // Extract articles from this tab
-        const tabArticles = await this.page.evaluate((status: string) => {
-          const articles: any[] = [];
-          const rows = document.querySelectorAll('table tbody tr');
-
-          rows.forEach((row) => {
-            try {
-              const h2 = row.querySelector('h2');
-              if (!h2) return;
-
-              // Try both link formats:
-              // 1. Edit links (drafts): /p/{id}/edit
-              // 2. Public links (published): /@username/slug-title-{id}
-              let articleUrl = '';
-              let articleLink: HTMLAnchorElement | null = null;
-
-              // Try edit link first
-              articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/p/"][href*="/edit"]');
-              if (articleLink) {
-                // Extract ID from edit link and construct public URL
-                const match = articleLink.href.match(/\/p\/([a-f0-9]+)\//);
-                if (match) {
-                  articleUrl = `https://medium.com/p/${match[1]}`;
-                }
-              } else {
-                // Try public link (for published articles)
-                articleLink = row.querySelector<HTMLAnchorElement>('a[href*="/@"]');
-                if (articleLink) {
-                  articleUrl = articleLink.href;
-                }
-              }
-
-              if (!articleUrl) return;
-
-              // Extract metadata
-              const rowText = row.textContent || '';
-              let publishDate = '';
-
-              // Try to extract date (different formats for different states)
-              const publishedMatch = rowText.match(/Published\s+([A-Za-z]+\s+\d+)/); // "Published May 13"
-              const updatedMatch = rowText.match(/Updated\s+([^·]+)/); // "Updated just now"
-              const readTimeMatch = rowText.match(/(\d+\s+min\s+read)/); // "7 min read"
-
-              if (publishedMatch) {
-                publishDate = publishedMatch[1];
-              } else if (updatedMatch) {
-                publishDate = updatedMatch[1].trim();
-              } else if (readTimeMatch) {
-                publishDate = readTimeMatch[1];
-              }
-
-              articles.push({
-                title: h2.textContent?.trim() || '',
-                content: '',
-                url: articleUrl,
-                publishDate,
-                tags: [],
-                status
-              });
-            } catch (error) {
-              console.error('Error extracting article:', error);
-            }
-          });
-
-          return articles;
-        }, statusMap[tab.name] || 'unknown');
+        const status = this.mapTabToStatus(tab.name);
+        const tabArticles = await this.extractArticlesFromTable(status as string);
 
         console.error(`  ✅ Found ${tabArticles.length} article(s)`);
         tabArticles.forEach((article: MediumArticle) => {
