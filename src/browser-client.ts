@@ -1130,6 +1130,225 @@ export class BrowserMediumClient {
   }
 
   /**
+   * Extract article metadata from article cards on the current page.
+   * Shared logic used by getFeed() and getListArticles().
+   *
+   * @param maxArticles - Maximum number of articles to extract
+   * @param feedCategory - Optional feed category to tag articles (for 'all' category)
+   * @returns Array of article metadata
+   */
+  private async extractArticleCards(
+    maxArticles: number,
+    feedCategory?: FeedCategory
+  ): Promise<MediumFeedArticle[]> {
+    if (!this.page) {
+      throw new Error('Browser not initialized');
+    }
+
+    return await this.page.evaluate(
+      ({ limit, category }) => {
+        const feedArticles: any[] = [];
+
+        // Strategy: Try multiple selectors for article cards (Medium UI varies)
+        const articleSelectors = [
+          'article',                           // Modern Medium layout
+          '[data-testid="story-preview"]',     // Test ID selector
+          '[data-testid="story-card"]',        // Alternative test ID
+          'div[role="article"]',               // Semantic HTML
+          '.js-postListItem',                  // Classic Medium
+          '.postArticle',                      // Older layout
+          '.streamItem'                        // Stream-based layout
+        ];
+
+        let cardElements: NodeListOf<Element> | null = null;
+
+        // Find which selector returns the most elements
+        for (const selector of articleSelectors) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            cardElements = elements;
+            break;
+          }
+        }
+
+        if (!cardElements || cardElements.length === 0) {
+          return [];
+        }
+
+        // Extract metadata from each card
+        cardElements.forEach((card, index) => {
+          if (feedArticles.length >= limit) return;
+
+          try {
+            // Extract title
+            const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="story-title"]', '.graf--title'];
+            let title = '';
+            for (const sel of titleSelectors) {
+              const titleEl = card.querySelector(sel);
+              if (titleEl?.textContent?.trim()) {
+                title = titleEl.textContent.trim();
+                break;
+              }
+            }
+
+            if (!title) return; // Skip if no title
+
+            // Extract excerpt/synopsis
+            const excerptSelectors = [
+              '.story-excerpt',
+              '.post-excerpt',
+              '[data-testid="story-excerpt"]',
+              '.graf--p',
+              'p'
+            ];
+            let excerpt = '';
+            for (const sel of excerptSelectors) {
+              const excerptEl = card.querySelector(sel);
+              if (excerptEl?.textContent?.trim() && excerptEl.textContent.trim().length > 20) {
+                excerpt = excerptEl.textContent.trim().substring(0, 300);
+                break;
+              }
+            }
+
+            // Extract article URL (prefer article link over publication link)
+            let url = '';
+
+            // Strategy 1: Try to get link from title element (most reliable)
+            for (const sel of titleSelectors) {
+              const titleEl = card.querySelector(sel);
+              if (titleEl) {
+                const titleLink = titleEl.closest('a') || titleEl.querySelector('a');
+                if (titleLink && (titleLink as HTMLAnchorElement).href) {
+                  const href = (titleLink as HTMLAnchorElement).href;
+                  if (href.includes('medium.com') && href.includes('-') &&
+                      !href.includes('/search?') && !href.includes('/signin')) {
+                    url = href.split('?')[0];
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Strategy 2: Find all links and pick the article link (not publication link)
+            if (!url) {
+              const allLinks = Array.from(card.querySelectorAll('a'));
+              const articleLinks = allLinks
+                .map(link => (link as HTMLAnchorElement).href)
+                .filter(href => {
+                  if (!href || !href.includes('medium.com')) return false;
+                  if (href.includes('/search?') || href.includes('/signin')) return false;
+
+                  // Article URLs have format: domain/@author/article-slug-id or domain/article-slug-id
+                  // Publication URLs are just: domain/@publication or domain/
+                  const urlParts = href.split('medium.com')[1] || '';
+
+                  // Must have a hyphen (article slug) and not end with just username
+                  const hasArticleSlug = urlParts.includes('-');
+                  const isNotJustProfile = !urlParts.match(/^\/@[^\/]+\/?$/);
+
+                  return hasArticleSlug && isNotJustProfile;
+                });
+
+              // Pick the longest URL (article URLs are typically longer than publication URLs)
+              if (articleLinks.length > 0) {
+                url = articleLinks.sort((a, b) => b.length - a.length)[0].split('?')[0];
+              }
+            }
+
+            if (!url) return; // Skip if no valid URL
+
+            // Extract author
+            const authorSelectors = [
+              '[data-testid="story-author"]',
+              '.postMetaInline-authorLockup',
+              '.author-name',
+              'a[rel="author"]'
+            ];
+            let author = '';
+            for (const sel of authorSelectors) {
+              const authorEl = card.querySelector(sel);
+              if (authorEl?.textContent?.trim()) {
+                author = authorEl.textContent.trim();
+                break;
+              }
+            }
+
+            // Extract publish date
+            const dateText = card.textContent || '';
+            let publishDate = '';
+            const datePatterns = [
+              /(\d+\s+(hour|day|week|month)s?\s+ago)/i,
+              /([A-Z][a-z]+\s+\d+)/,  // "Jan 15"
+              /(\d+\s+min\s+ago)/i
+            ];
+            for (const pattern of datePatterns) {
+              const match = dateText.match(pattern);
+              if (match) {
+                publishDate = match[1];
+                break;
+              }
+            }
+
+            // Extract read time
+            let readTime = '';
+            const readTimeMatch = dateText.match(/(\d+\s+min\s+read)/i);
+            if (readTimeMatch) {
+              readTime = readTimeMatch[1];
+            }
+
+            // Extract claps (if visible)
+            // Note: Using literal numbers here because BrowserMediumClient constants aren't accessible in page.evaluate()
+            let claps = 0;
+            const clapMatch = dateText.match(/(\d+(?:K|M)?)\s+claps?/i);
+            if (clapMatch) {
+              const clapStr = clapMatch[1];
+              if (clapStr.includes('K')) {
+                claps = parseFloat(clapStr) * 1000;  // 1K multiplier
+              } else if (clapStr.includes('M')) {
+                claps = parseFloat(clapStr) * 1000000;  // 1M multiplier
+              } else {
+                claps = parseInt(clapStr, 10);
+              }
+            }
+
+            // Extract featured image URL
+            let imageUrl = '';
+            const imgEl = card.querySelector('img');
+            if (imgEl && imgEl.src) {
+              imageUrl = imgEl.src;
+            }
+
+            const article: any = {
+              title,
+              excerpt,
+              url,
+              author,
+              publishDate,
+              readTime,
+              claps: claps || undefined,
+              imageUrl: imageUrl || undefined
+            };
+
+            // Add feedCategory if provided (for 'all' category)
+            if (category) {
+              article.feedCategory = category;
+            }
+
+            feedArticles.push(article);
+          } catch (error) {
+            // Silent error in browser context
+            const noop = () => {};
+            noop();
+          }
+        });
+
+        return feedArticles;
+      },
+      { limit: maxArticles, category: feedCategory }
+    );
+  }
+
+  /**
    * Retrieve article headers from a Medium feed.
    * @param category - Feed category: 'featured', 'for-you', or 'following'
    * @param limit - Maximum number of articles to return (default: 10)
@@ -1210,195 +1429,8 @@ export class BrowserMediumClient {
       }
     }
 
-    // Extract article cards from feed
-    const articles = await this.page.evaluate((maxArticles: number) => {
-      const feedArticles: any[] = [];
-
-      // Strategy: Try multiple selectors for article cards (Medium UI varies)
-      const articleSelectors = [
-        'article',                           // Modern Medium layout
-        '[data-testid="story-preview"]',     // Test ID selector
-        '[data-testid="story-card"]',        // Alternative test ID
-        'div[role="article"]',               // Semantic HTML
-        '.js-postListItem',                  // Classic Medium
-        '.postArticle',                      // Older layout
-        '.streamItem'                        // Stream-based layout
-      ];
-
-      let cardElements: NodeListOf<Element> | null = null;
-
-      // Find which selector returns the most elements
-      for (const selector of articleSelectors) {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length > 0) {
-          cardElements = elements;
-          break;
-        }
-      }
-
-      if (!cardElements || cardElements.length === 0) {
-        return [];
-      }
-
-      // Extract metadata from each card
-      cardElements.forEach((card, index) => {
-        if (feedArticles.length >= maxArticles) return;
-
-        try {
-          // Extract title
-          const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="story-title"]', '.graf--title'];
-          let title = '';
-          for (const sel of titleSelectors) {
-            const titleEl = card.querySelector(sel);
-            if (titleEl?.textContent?.trim()) {
-              title = titleEl.textContent.trim();
-              break;
-            }
-          }
-
-          if (!title) return; // Skip if no title
-
-          // Extract excerpt/synopsis
-          const excerptSelectors = [
-            '.story-excerpt',
-            '.post-excerpt',
-            '[data-testid="story-excerpt"]',
-            '.graf--p',
-            'p'
-          ];
-          let excerpt = '';
-          for (const sel of excerptSelectors) {
-            const excerptEl = card.querySelector(sel);
-            if (excerptEl?.textContent?.trim() && excerptEl.textContent.trim().length > 20) {
-              excerpt = excerptEl.textContent.trim().substring(0, 300);
-              break;
-            }
-          }
-
-          // Extract article URL (prefer article link over publication link)
-          let url = '';
-
-          // Strategy 1: Try to get link from title element (most reliable)
-          for (const sel of titleSelectors) {
-            const titleEl = card.querySelector(sel);
-            if (titleEl) {
-              const titleLink = titleEl.closest('a') || titleEl.querySelector('a');
-              if (titleLink && (titleLink as HTMLAnchorElement).href) {
-                const href = (titleLink as HTMLAnchorElement).href;
-                if (href.includes('medium.com') && href.includes('-') &&
-                    !href.includes('/search?') && !href.includes('/signin')) {
-                  url = href.split('?')[0];
-                  break;
-                }
-              }
-            }
-          }
-
-          // Strategy 2: Find all links and pick the article link (not publication link)
-          if (!url) {
-            const allLinks = Array.from(card.querySelectorAll('a'));
-            const articleLinks = allLinks
-              .map(link => (link as HTMLAnchorElement).href)
-              .filter(href => {
-                if (!href || !href.includes('medium.com')) return false;
-                if (href.includes('/search?') || href.includes('/signin')) return false;
-
-                // Article URLs have format: domain/@author/article-slug-id or domain/article-slug-id
-                // Publication URLs are just: domain/@publication or domain/
-                const urlParts = href.split('medium.com')[1] || '';
-
-                // Must have a hyphen (article slug) and not end with just username
-                const hasArticleSlug = urlParts.includes('-');
-                const isNotJustProfile = !urlParts.match(/^\/@[^\/]+\/?$/);
-
-                return hasArticleSlug && isNotJustProfile;
-              });
-
-            // Pick the longest URL (article URLs are typically longer than publication URLs)
-            if (articleLinks.length > 0) {
-              url = articleLinks.sort((a, b) => b.length - a.length)[0].split('?')[0];
-            }
-          }
-
-          if (!url) return; // Skip if no valid URL
-
-          // Extract author
-          const authorSelectors = [
-            '[data-testid="story-author"]',
-            '.postMetaInline-authorLockup',
-            '.author-name',
-            'a[rel="author"]'
-          ];
-          let author = '';
-          for (const sel of authorSelectors) {
-            const authorEl = card.querySelector(sel);
-            if (authorEl?.textContent?.trim()) {
-              author = authorEl.textContent.trim();
-              break;
-            }
-          }
-
-          // Extract publish date
-          const dateText = card.textContent || '';
-          let publishDate = '';
-          const datePatterns = [
-            /(\d+\s+(hour|day|week|month)s?\s+ago)/i,
-            /([A-Z][a-z]+\s+\d+)/,  // "Jan 15"
-            /(\d+\s+min\s+ago)/i
-          ];
-          for (const pattern of datePatterns) {
-            const match = dateText.match(pattern);
-            if (match) {
-              publishDate = match[1];
-              break;
-            }
-          }
-
-          // Extract read time
-          let readTime = '';
-          const readTimeMatch = dateText.match(/(\d+\s+min\s+read)/i);
-          if (readTimeMatch) {
-            readTime = readTimeMatch[1];
-          }
-
-          // Extract claps (if visible)
-          let claps = 0;
-          const clapMatch = dateText.match(/(\d+(?:K|M)?)\s+claps?/i);
-          if (clapMatch) {
-            const clapStr = clapMatch[1];
-            if (clapStr.includes('K')) {
-              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.K;
-            } else if (clapStr.includes('M')) {
-              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.M;
-            } else {
-              claps = parseInt(clapStr, 10);
-            }
-          }
-
-          // Extract featured image URL
-          let imageUrl = '';
-          const imgEl = card.querySelector('img');
-          if (imgEl && imgEl.src) {
-            imageUrl = imgEl.src;
-          }
-
-          feedArticles.push({
-            title,
-            excerpt,
-            url,
-            author,
-            publishDate,
-            readTime,
-            claps: claps || undefined,
-            imageUrl: imageUrl || undefined
-          });
-        } catch (error) {
-          console.error('Error extracting feed article:', error);
-        }
-      });
-
-      return feedArticles;
-    }, limit);
+    // Extract article cards from feed using shared method
+    const articles = await this.extractArticleCards(limit);
 
     console.error(`  ✅ Extracted ${articles.length} article(s) from ${category} feed`);
     return articles;
@@ -1601,179 +1633,8 @@ export class BrowserMediumClient {
       throw new Error(`List not found: ${listId}`);
     }
 
-    // Extract articles from list (similar to getFeed)
-    const articles = await this.page.evaluate((maxArticles: number) => {
-      const listArticles: any[] = [];
-
-      // Similar selectors as getFeed
-      const articleSelectors = [
-        'article',
-        '[data-testid="story-preview"]',
-        '[data-testid="list-article"]',
-        'div[role="article"]',
-        '.js-postListItem'
-      ];
-
-      let cardElements: NodeListOf<Element> | null = null;
-
-      for (const selector of articleSelectors) {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length > 0) {
-          cardElements = elements;
-          break;
-        }
-      }
-
-      if (!cardElements || cardElements.length === 0) {
-        return [];
-      }
-
-      // Extract metadata (same logic as getFeed)
-      cardElements.forEach((card, index) => {
-        if (listArticles.length >= maxArticles) return;
-
-        try {
-          // Extract title
-          const titleSelectors = ['h1', 'h2', 'h3', '[data-testid="story-title"]'];
-          let title = '';
-          for (const sel of titleSelectors) {
-            const titleEl = card.querySelector(sel);
-            if (titleEl?.textContent?.trim()) {
-              title = titleEl.textContent.trim();
-              break;
-            }
-          }
-
-          if (!title) return;
-
-          // Extract excerpt
-          const excerptSelectors = ['.story-excerpt', '.post-excerpt', '[data-testid="story-excerpt"]', '.graf--p', 'p'];
-          let excerpt = '';
-          for (const sel of excerptSelectors) {
-            const excerptEl = card.querySelector(sel);
-            if (excerptEl?.textContent?.trim() && excerptEl.textContent.trim().length > 20) {
-              excerpt = excerptEl.textContent.trim().substring(0, 300);
-              break;
-            }
-          }
-
-          // Extract URL (prefer article link over publication link)
-          let url = '';
-
-          // Strategy 1: Try to get link from title element (most reliable)
-          for (const sel of titleSelectors) {
-            const titleEl = card.querySelector(sel);
-            if (titleEl) {
-              const titleLink = titleEl.closest('a') || titleEl.querySelector('a');
-              if (titleLink && (titleLink as HTMLAnchorElement).href) {
-                const href = (titleLink as HTMLAnchorElement).href;
-                if (href.includes('medium.com') && href.includes('-') &&
-                    !href.includes('/search?') && !href.includes('/signin')) {
-                  url = href.split('?')[0];
-                  break;
-                }
-              }
-            }
-          }
-
-          // Strategy 2: Find all links and pick the article link (not publication link)
-          if (!url) {
-            const allLinks = Array.from(card.querySelectorAll('a'));
-            const articleLinks = allLinks
-              .map(link => (link as HTMLAnchorElement).href)
-              .filter(href => {
-                if (!href || !href.includes('medium.com')) return false;
-                if (href.includes('/search?') || href.includes('/signin')) return false;
-
-                // Article URLs have format: domain/@author/article-slug-id or domain/article-slug-id
-                // Publication URLs are just: domain/@publication or domain/
-                const urlParts = href.split('medium.com')[1] || '';
-
-                // Must have a hyphen (article slug) and not end with just username
-                const hasArticleSlug = urlParts.includes('-');
-                const isNotJustProfile = !urlParts.match(/^\/@[^\/]+\/?$/);
-
-                return hasArticleSlug && isNotJustProfile;
-              });
-
-            // Pick the longest URL (article URLs are typically longer than publication URLs)
-            if (articleLinks.length > 0) {
-              url = articleLinks.sort((a, b) => b.length - a.length)[0].split('?')[0];
-            }
-          }
-
-          if (!url) return;
-
-          // Extract author
-          const authorSelectors = ['[data-testid="story-author"]', '.author-name', 'a[rel="author"]'];
-          let author = '';
-          for (const sel of authorSelectors) {
-            const authorEl = card.querySelector(sel);
-            if (authorEl?.textContent?.trim()) {
-              author = authorEl.textContent.trim();
-              break;
-            }
-          }
-
-          // Extract publish date and read time (same as getFeed)
-          const cardText = card.textContent || '';
-          let publishDate = '';
-          const datePatterns = [
-            /(\d+\s+(hour|day|week|month)s?\s+ago)/i,
-            /([A-Z][a-z]+\s+\d+)/
-          ];
-          for (const pattern of datePatterns) {
-            const match = cardText.match(pattern);
-            if (match) {
-              publishDate = match[1];
-              break;
-            }
-          }
-
-          let readTime = '';
-          const readTimeMatch = cardText.match(/(\d+\s+min\s+read)/i);
-          if (readTimeMatch) {
-            readTime = readTimeMatch[1];
-          }
-
-          // Extract claps
-          let claps = 0;
-          const clapMatch = cardText.match(/(\d+(?:K|M)?)\s+claps?/i);
-          if (clapMatch) {
-            const clapStr = clapMatch[1];
-            if (clapStr.includes('K')) {
-              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.K;
-            } else if (clapStr.includes('M')) {
-              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.M;
-            } else {
-              claps = parseInt(clapStr, 10);
-            }
-          }
-
-          // Extract image
-          let imageUrl = '';
-          const imgEl = card.querySelector('img');
-          if (imgEl?.src) {
-            imageUrl = imgEl.src;
-          }
-
-          listArticles.push({
-            title,
-            excerpt,
-            url,
-            author,
-            publishDate,
-            readTime,
-            claps: claps || undefined,
-            imageUrl: imageUrl || undefined
-          });
-        } catch (error) {
-          console.error('Error extracting list article:', error);
-        }
-      });
-
-      return listArticles;
-    }, limit);
+    // Extract articles from list using shared method
+    const articles = await this.extractArticleCards(limit);
 
     console.error(`  ✅ Extracted ${articles.length} article(s) from list`);
     return articles;
