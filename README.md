@@ -55,7 +55,63 @@ npm run build
 ```
 
 ### Configuration
+
 No API keys needed! The server will prompt you to login to Medium in your browser on first use.
+
+#### Advanced Configuration
+
+For developers who want to customize the server's behavior, you can modify constants in `src/browser-client.ts`:
+
+##### Timeout Constants
+
+All timeouts are defined as static constants in the `BrowserMediumClient` class (lines 91-99):
+
+```typescript
+private static readonly TIMEOUTS = {
+  LOGIN: 300_000,           // 5 minutes - user login interaction
+  PAGE_LOAD: 60_000,        // 60 seconds - article content loading
+  SHORT_WAIT: 2_000,        // 2 seconds - UI element appearance
+  CONTENT_WAIT: 3_000,      // 3 seconds - dynamic content loading
+  EDITOR_LOAD: 15_000,      // 15 seconds - rich text editor initialization
+  NETWORK_IDLE: 10_000      // 10 seconds - network activity settlement
+} as const;
+```
+
+**Common Customizations:**
+- **Slow network**: Increase `PAGE_LOAD` and `NETWORK_IDLE`
+- **Slow login**: Increase `LOGIN` timeout
+- **Fast connections**: Decrease `SHORT_WAIT` and `CONTENT_WAIT` for faster operations
+
+##### Viewport Settings
+
+Browser viewport dimensions (line 100):
+
+```typescript
+private static readonly VIEWPORT = {
+  WIDTH: 1280,
+  HEIGHT: 720
+} as const;
+```
+
+**Note**: Changing viewport may affect element visibility and selector detection.
+
+##### Selector Configuration
+
+Medium UI selectors are defined with fallback strategies throughout `browser-client.ts`. Key selector locations:
+
+- **Login indicators** (line 213): User icon, write button, notifications
+- **Article list** (lines 385-399): Tab detection and article table parsing
+- **Editor fields** (lines 671-730): Title and content contenteditable elements
+- **Feed articles** (lines 1283-1290): Article cards on feed pages
+- **Reading lists** (lines 1591-1598): List containers on lists page
+
+**When Medium UI changes:**
+1. Run appropriate debug script (see "Debugging Selector Issues" section)
+2. Update selectors in `browser-client.ts`
+3. Add new selectors to fallback arrays (don't replace existing ones)
+4. Test with corresponding test script
+
+For detailed selector debugging workflow, see the "Medium UI Changes - Debugging Selector Issues" section below.
 
 ### Usage
 

@@ -110,6 +110,80 @@ npm run test:all
    - `auth.ts`: Old OAuth implementation for deprecated Medium API
    - `client.ts`: Old REST API client - DO NOT USE
 
+### Code Quality & Architecture
+
+**Recent Refactorings (Dec 2024 - Phases 3 & 4):**
+
+#### Phase 3: Complex Function Refactoring
+
+Large, monolithic functions were broken down into focused helper methods following the Single Responsibility Principle:
+
+**1. `ensureLoggedIn()` Refactoring (99 lines → 53 lines + 3 helpers)**
+   - **Extracted Methods**:
+     - `checkLoginRedirect()`: Fast session validation via redirect detection
+     - `detectLoginIndicators()`: DOM-based login state detection using multiple selectors
+     - `waitForUserLogin()`: Manual login flow handler with timeout management
+   - **Benefits**: Improved testability, easier debugging, clearer separation of concerns
+   - **Location**: browser-client.ts:172-321
+
+**2. `getUserArticles()` Refactoring (161 lines → 67 lines + 3 helpers)**
+   - **Extracted Methods**:
+     - `parseArticleTabs()`: Tab navigation parsing with article count detection
+     - `mapTabToStatus()`: Maps tab names to article status enum values
+     - `extractArticlesFromTable()`: Article metadata extraction from table rows
+   - **Benefits**: Reduced complexity, reusable table extraction logic, clearer main method flow
+   - **Location**: browser-client.ts:372-566
+
+**Configuration Constants** (Phase 1):
+   - **Timeout Constants**: All magic numbers extracted to `TIMEOUTS` constant (lines 91-99)
+     - `LOGIN`: 300,000ms (5 minutes)
+     - `PAGE_LOAD`: 60,000ms (60 seconds)
+     - `SHORT_WAIT`: 2,000ms (2 seconds)
+     - `CONTENT_WAIT`: 3,000ms (3 seconds)
+     - `EDITOR_LOAD`: 15,000ms (15 seconds)
+     - `NETWORK_IDLE`: 10,000ms (10 seconds)
+   - **Viewport Constants**: `VIEWPORT.WIDTH` (1280) and `VIEWPORT.HEIGHT` (720) at line 100
+   - **Benefits**: Easy to customize, self-documenting, consistent across codebase
+
+#### Phase 4: Type Safety Improvements
+
+Eliminated `any` types throughout the codebase to improve type safety and catch bugs at compile time:
+
+**1. Catch Block Error Handling (10 occurrences)**
+   - **Old**: `catch (error: any) { ... error.message }`
+   - **New**: `catch (error) { const message = error instanceof Error ? error.message : String(error) }`
+   - **Benefits**: Safer error handling, works with both Error objects and other thrown values
+   - **Locations**: browser-client.ts (2), index.ts (8)
+
+**2. Browser Context Options**
+   - **Old**: `const contextOptions: any = {...}`
+   - **New**: `const contextOptions: BrowserContextOptions = {...}`
+   - **Benefits**: IDE autocomplete, compile-time validation of browser options
+   - **Location**: browser-client.ts:96
+
+**3. Article Arrays in Browser Context (5 occurrences)**
+   - **Old**: `const articles: any[] = []`
+   - **New**: Inline type definitions matching return interfaces
+   - **Examples**:
+     - `extractArticlesFromTable`: Typed array with status union type
+     - `searchMediumArticles`: Typed search result structure
+     - `extractArticleCards`: Feed article structure with feedCategory
+     - `getLists`: Reading list structure
+   - **Benefits**: Type safety in browser-side code, catches property mismatches
+   - **Locations**: Lines 455, 893, 1271, 1452, 1581
+
+**4. Storage State Type Definition**
+   - **New Interface**: `StorageState` (lines 64-79) based on Playwright's format
+   - **Typed Methods**: `validateStorageState()` and `getEarliestCookieExpiry()`
+   - **Benefits**: Structured cookie/session validation, prevents invalid state objects
+   - **Locations**: browser-client.ts:1128, 1168
+
+**Type Safety Metrics**:
+   - **Before**: 25 `any` type usages
+   - **After**: ~5 `any` uses (only in legitimate cases: log functions, test helpers)
+   - **Coverage**: ~80% of previous `any` uses eliminated
+   - **Impact**: Stronger compile-time safety, better IDE support, easier refactoring
+
 ### Data Flow
 
 ```
