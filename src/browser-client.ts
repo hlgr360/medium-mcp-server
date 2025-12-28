@@ -1,6 +1,6 @@
 import { chromium as playwrightChromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page, BrowserContext } from 'playwright';
+import { Browser, Page, BrowserContext, BrowserContextOptions } from 'playwright';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -57,6 +57,27 @@ export interface PublishOptions {
   isDraft?: boolean;
 }
 
+/**
+ * Simplified storage state structure for session validation.
+ * Based on Playwright's storage state format.
+ */
+interface StorageState {
+  cookies?: Array<{
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: 'Strict' | 'Lax' | 'None';
+  }>;
+  origins?: Array<{
+    origin: string;
+    localStorage: Array<{ name: string; value: string }>;
+  }>;
+}
+
 export class BrowserMediumClient {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
@@ -93,7 +114,7 @@ export class BrowserMediumClient {
   async initialize(forceHeadless?: boolean): Promise<void> {
     // IMPORTANT: Check session file FIRST to set isAuthenticatedSession
     // This must happen BEFORE determining headless mode
-    const contextOptions: any = {
+    const contextOptions: BrowserContextOptions = {
       viewport: { width: BrowserMediumClient.VIEWPORT.WIDTH, height: BrowserMediumClient.VIEWPORT.HEIGHT },
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       extraHTTPHeaders: {
@@ -430,7 +451,15 @@ export class BrowserMediumClient {
     if (!this.page) return [];
 
     return await this.page.evaluate((status: string) => {
-      const articles: any[] = [];
+      // Define article structure for browser context (can't use full MediumArticle type here)
+      const articles: Array<{
+        title: string;
+        content: string;
+        url: string;
+        publishDate: string;
+        tags: string[];
+        status: 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission' | 'unknown';
+      }> = [];
       const rows = document.querySelectorAll('table tbody tr');
 
       rows.forEach((row) => {
@@ -485,7 +514,7 @@ export class BrowserMediumClient {
             url: articleUrl,
             publishDate,
             tags: [],
-            status
+            status: status as 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission' | 'unknown'
           });
         } catch (error) {
           console.error('Error extracting article:', error);
@@ -556,8 +585,9 @@ export class BrowserMediumClient {
 
         allArticles.push(...tabArticles);
 
-      } catch (error: any) {
-        console.error(`  ❌ Error fetching ${tab.name}: ${error.message}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`  ❌ Error fetching ${tab.name}: ${message}`);
       }
     }
 
@@ -880,7 +910,15 @@ export class BrowserMediumClient {
         '.post-preview'
       ];
 
-      const articles: any[] = [];
+      // Define article structure for browser context
+      const articles: Array<{
+        title: string;
+        content: string;
+        url: string;
+        publishDate: string;
+        tags: string[];
+        claps: number;
+      }> = [];
       let elementsFound = 0;
 
       for (const selector of possibleSelectors) {
@@ -1087,7 +1125,7 @@ export class BrowserMediumClient {
    * @param storageState - The storage state object from Playwright
    * @returns true if the storage state is valid and not expired
    */
-  private validateStorageState(storageState: any): boolean {
+  private validateStorageState(storageState: StorageState): boolean {
     if (!storageState || !storageState.cookies) {
       return false;
     }
@@ -1127,7 +1165,7 @@ export class BrowserMediumClient {
    * @param storageState - The storage state object from Playwright
    * @returns The earliest expiry timestamp in Unix seconds, or null if no cookies
    */
-  private getEarliestCookieExpiry(storageState: any): number | null {
+  private getEarliestCookieExpiry(storageState: StorageState): number | null {
     if (!storageState?.cookies) return null;
 
     let earliest: number | null = null;
@@ -1229,7 +1267,18 @@ export class BrowserMediumClient {
 
     return await this.page.evaluate(
       ({ limit, category }) => {
-        const feedArticles: any[] = [];
+        // Define feed article structure for browser context
+        const feedArticles: Array<{
+          title: string;
+          excerpt: string;
+          url: string;
+          author?: string;
+          publishDate?: string;
+          readTime?: string;
+          claps?: number;
+          imageUrl?: string;
+          feedCategory?: 'featured' | 'for-you' | 'following' | 'all';
+        }> = [];
 
         // Strategy: Try multiple selectors for article cards (Medium UI varies)
         const articleSelectors = [
@@ -1400,7 +1449,17 @@ export class BrowserMediumClient {
               imageUrl = imgEl.src;
             }
 
-            const article: any = {
+            const article: {
+              title: string;
+              excerpt: string;
+              url: string;
+              author?: string;
+              publishDate?: string;
+              readTime?: string;
+              claps?: number;
+              imageUrl?: string;
+              feedCategory?: 'featured' | 'for-you' | 'following' | 'all';
+            } = {
               title,
               excerpt,
               url,
@@ -1455,8 +1514,9 @@ export class BrowserMediumClient {
           articles.forEach(article => article.feedCategory = cat);
           allArticles.push(...articles);
           console.error(`  ✅ Got ${articles.length} article(s) from ${cat}`);
-        } catch (error: any) {
-          console.error(`  ⚠️  Failed to fetch ${cat} feed: ${error.message}`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`  ⚠️  Failed to fetch ${cat} feed: ${message}`);
           // Continue with other feeds even if one fails
         }
       }
@@ -1538,7 +1598,14 @@ export class BrowserMediumClient {
 
     // Extract lists from page
     const lists = await this.page.evaluate(() => {
-      const mediumLists: any[] = [];
+      // Define list structure for browser context
+      const mediumLists: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        articleCount?: number;
+        url: string;
+      }> = [];
 
       // Strategy: Look for list containers with data-testid="readingList"
       // This is the most reliable selector based on current Medium UI

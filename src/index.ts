@@ -54,13 +54,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error publishing article: ${error.message}`
+                text: `Error publishing article: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -88,13 +88,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error retrieving articles: ${error.message}`
+                text: `Error retrieving articles: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -125,13 +125,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error retrieving article content: ${error.message}`
+                text: `Error retrieving article content: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -161,13 +161,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error searching articles: ${error.message}`
+                text: `Error searching articles: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -204,13 +204,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error retrieving feed: ${error.message}`
+                text: `Error retrieving feed: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -237,13 +237,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error retrieving lists: ${error.message}`
+                text: `Error retrieving lists: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -281,13 +281,13 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           return {
             isError: true,
             content: [
               {
                 type: "text",
-                text: `Error retrieving list articles: ${error.message}`
+                text: `Error retrieving list articles: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
@@ -322,7 +322,7 @@ class MediumMcpServer {
               }
             ]
           };
-        } catch (error: any) {
+        } catch (error) {
           // Ensure browser is closed even if login fails
           await this.mediumClient.close();
 
@@ -331,7 +331,7 @@ class MediumMcpServer {
             content: [
               {
                 type: "text",
-                text: `Login error: ${error.message}`
+                text: `Login error: ${error instanceof Error ? error.message : String(error)}`
               }
             ]
           };
