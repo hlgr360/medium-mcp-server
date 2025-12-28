@@ -8,6 +8,7 @@ import { join } from 'path';
  *
  * Tests real Medium feed retrieval including:
  * - Featured, For You, and Following feeds
+ * - 'all' category (fetches from all feeds with feedCategory tagging)
  * - Article structure validation
  * - Limit parameter functionality
  * - Performance benchmarks
@@ -73,6 +74,37 @@ test.describe('getFeed() E2E', () => {
       }
     }, 60000); // 60s timeout
   });
+
+  test('should fetch from all feeds with feedCategory tags', async () => {
+    await client.initialize();
+
+    const articles = await client.getFeed('all', 3);
+
+    expect(Array.isArray(articles)).toBe(true);
+
+    if (articles.length > 0) {
+      // Verify all articles have feedCategory field
+      articles.forEach(article => {
+        expect(article.feedCategory).toBeDefined();
+        expect(['featured', 'for-you', 'following']).toContain(article.feedCategory);
+      });
+
+      // Group by category
+      const featured = articles.filter(a => a.feedCategory === 'featured');
+      const forYou = articles.filter(a => a.feedCategory === 'for-you');
+      const following = articles.filter(a => a.feedCategory === 'following');
+
+      console.log(`✅ all: Retrieved ${articles.length} article(s) total`);
+      console.log(`   Featured: ${featured.length}, For You: ${forYou.length}, Following: ${following.length}`);
+
+      // At least one category should have articles (unless all feeds are empty)
+      if (articles.length > 0) {
+        expect(featured.length + forYou.length + following.length).toBe(articles.length);
+      }
+    } else {
+      console.log(`ℹ️  all: No articles found (this may be normal)`);
+    }
+  }, 120000); // 120s timeout for fetching from 3 feeds
 
   test('should respect limit parameter', async () => {
     await client.initialize();

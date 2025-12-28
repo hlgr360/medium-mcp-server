@@ -439,7 +439,7 @@ medium-mcp-server/
 ```
 
 **Key Files:**
-- **index.ts**: MCP server with 5 registered tools
+- **index.ts**: MCP server with 8 registered tools
 - **browser-client.ts**: Core Playwright automation engine
 - **medium-session.json**: Persistent login session storage
 - **auth.ts/client.ts**: Legacy API code (unused, kept for reference)

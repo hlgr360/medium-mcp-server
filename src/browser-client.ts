@@ -66,6 +66,26 @@ export class BrowserMediumClient {
   private sessionPath = join(__dirname, '..', 'medium-session.json');
   private isAuthenticatedSession: boolean = false;
 
+  // Configuration constants
+  private static readonly TIMEOUTS = {
+    LOGIN: 300_000,           // 5 minutes - user login interaction
+    PAGE_LOAD: 60_000,        // 60 seconds - article content loading
+    SHORT_WAIT: 2_000,        // 2 seconds - UI element appearance
+    CONTENT_WAIT: 3_000,      // 3 seconds - dynamic content loading
+    EDITOR_LOAD: 15_000,      // 15 seconds - rich text editor initialization
+    NETWORK_IDLE: 10_000      // 10 seconds - network activity settlement
+  } as const;
+
+  private static readonly VIEWPORT = {
+    WIDTH: 1280,
+    HEIGHT: 720
+  } as const;
+
+  private static readonly CLAP_MULTIPLIERS = {
+    K: 1_000,
+    M: 1_000_000
+  } as const;
+
   /**
    * Initialize the browser for automation.
    * @param forceHeadless - Optional parameter to force headless mode. If not provided, uses shouldUseHeadlessMode().
@@ -74,7 +94,7 @@ export class BrowserMediumClient {
     // IMPORTANT: Check session file FIRST to set isAuthenticatedSession
     // This must happen BEFORE determining headless mode
     const contextOptions: any = {
-      viewport: { width: 1280, height: 720 },
+      viewport: { width: BrowserMediumClient.VIEWPORT.WIDTH, height: BrowserMediumClient.VIEWPORT.HEIGHT },
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       extraHTTPHeaders: {
         'Accept-Language': 'en-US,en;q=0.9'
@@ -183,7 +203,7 @@ export class BrowserMediumClient {
     console.error('🔍 On signin page, checking if already logged in...');
 
     // Wait a moment for any dynamic content to load
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     const loginIndicators = [
       '[data-testid="headerUserIcon"]',
@@ -194,7 +214,7 @@ export class BrowserMediumClient {
 
     for (const selector of loginIndicators) {
       try {
-        await this.page.waitForSelector(selector, { timeout: 2000 });
+        await this.page.waitForSelector(selector, { timeout: BrowserMediumClient.TIMEOUTS.SHORT_WAIT });
         console.error(`✅ Already logged in (found ${selector} on signin page)`);
         await this.saveSession();
         return true;
@@ -241,7 +261,7 @@ export class BrowserMediumClient {
 
     // Wait for successful login (user button appears)
     try {
-      await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: 300000 }); // 5 minutes
+      await this.page.waitForSelector('[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]', { timeout: BrowserMediumClient.TIMEOUTS.LOGIN });
       console.error('✅ Login successful!');
       await this.saveSession();
       return true;
@@ -309,9 +329,9 @@ export class BrowserMediumClient {
     console.error('📚 Fetching all user articles from all tabs...');
     await this.page.goto('https://medium.com/me/stories', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
     });
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     // Parse tab names to find which tabs have articles
     const tabsWithCounts = await this.page.evaluate(() => {
@@ -373,7 +393,7 @@ export class BrowserMediumClient {
         await this.page.waitForTimeout(1000);
 
         // Wait for network to be idle
-        await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+        await this.page.waitForLoadState('networkidle', { timeout: BrowserMediumClient.TIMEOUTS.NETWORK_IDLE }).catch(() => {
           console.error('  ⚠️  Network idle timeout, continuing anyway...');
         });
 
@@ -491,11 +511,11 @@ export class BrowserMediumClient {
       // with lots of tracking/analytics that may never reach networkidle
       await this.page.goto(url, {
         waitUntil: 'domcontentloaded',
-        timeout: 60000 // 60 second timeout for slow connections
+        timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
       });
 
       // Wait a bit for dynamic content to load
-      await this.page.waitForTimeout(3000);
+      await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.CONTENT_WAIT);
       
       console.error('📄 Page loaded, extracting content...');
 
@@ -668,7 +688,7 @@ export class BrowserMediumClient {
       await this.page.waitForLoadState('networkidle');
 
       // Wait for the editor to load (Medium changed selectors in late 2024)
-      await this.page.waitForSelector('[data-testid="editorTitleParagraph"]', { timeout: 15000 });
+      await this.page.waitForSelector('[data-testid="editorTitleParagraph"]', { timeout: BrowserMediumClient.TIMEOUTS.EDITOR_LOAD });
 
       // Add title using new selector
       const titleSelector = '[data-testid="editorTitleParagraph"]';
@@ -677,7 +697,7 @@ export class BrowserMediumClient {
 
       // Add content using new selector
       const contentSelector = '[data-testid="editorParagraphText"]';
-      await this.page.waitForSelector(contentSelector, { timeout: 10000 });
+      await this.page.waitForSelector(contentSelector, { timeout: BrowserMediumClient.TIMEOUTS.NETWORK_IDLE });
       await this.page.click(contentSelector);
       
       // Split content into paragraphs and add them
@@ -748,9 +768,9 @@ export class BrowserMediumClient {
     
     await this.page.goto(`https://medium.com/search?q=${encodeURIComponent(searchQuery)}`);
     await this.page.waitForLoadState('networkidle');
-    
+
     // Wait a bit more for dynamic content to load
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     console.error('📄 Current page URL:', this.page.url());
 
@@ -1171,9 +1191,9 @@ export class BrowserMediumClient {
     // Navigate to feed page
     await this.page.goto(feedUrl, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
     });
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     // Click tab if needed (Featured/For You on homepage)
     if (needsTabClick) {
@@ -1181,7 +1201,7 @@ export class BrowserMediumClient {
         console.error(`  🔍 Clicking ${category} tab...`);
         const tab = this.page.locator(tabSelector).first();
         await tab.click();
-        await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+        await this.page.waitForLoadState('networkidle', { timeout: BrowserMediumClient.TIMEOUTS.NETWORK_IDLE }).catch(() => {
           console.error('  ⚠️  Network idle timeout, continuing...');
         });
         await this.page.waitForTimeout(1500);
@@ -1347,9 +1367,9 @@ export class BrowserMediumClient {
           if (clapMatch) {
             const clapStr = clapMatch[1];
             if (clapStr.includes('K')) {
-              claps = parseFloat(clapStr) * 1000;
+              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.K;
             } else if (clapStr.includes('M')) {
-              claps = parseFloat(clapStr) * 1000000;
+              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.M;
             } else {
               claps = parseInt(clapStr, 10);
             }
@@ -1398,9 +1418,9 @@ export class BrowserMediumClient {
     // Navigate to lists page
     await this.page.goto('https://medium.com/me/lists', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
     });
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     // Extract lists from page
     const lists = await this.page.evaluate(() => {
@@ -1538,9 +1558,9 @@ export class BrowserMediumClient {
     // (List URLs require username: /@username/list/list-id, not /me/list/list-id)
     await this.page.goto('https://medium.com/me/lists', {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
     });
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     // Find the list URL from the lists page
     const listUrl = await this.page.evaluate((targetListId: string) => {
@@ -1565,9 +1585,9 @@ export class BrowserMediumClient {
     // Navigate to the list page using the full URL
     await this.page.goto(listUrl, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
     });
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
     // Check if list exists (detect error page)
     const isErrorPage = await this.page.evaluate(() => {
@@ -1722,9 +1742,9 @@ export class BrowserMediumClient {
           if (clapMatch) {
             const clapStr = clapMatch[1];
             if (clapStr.includes('K')) {
-              claps = parseFloat(clapStr) * 1000;
+              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.K;
             } else if (clapStr.includes('M')) {
-              claps = parseFloat(clapStr) * 1000000;
+              claps = parseFloat(clapStr) * BrowserMediumClient.CLAP_MULTIPLIERS.M;
             } else {
               claps = parseInt(clapStr, 10);
             }

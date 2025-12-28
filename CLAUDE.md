@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Medium MCP Server is a browser-based automation solution for programmatically interacting with Medium's content ecosystem. Since Medium discontinued their public API for new users, this server uses Playwright browser automation to provide content management through the Model Context Protocol (MCP).
 
-**Key Point**: This project was AI-developed and uses browser automation as a workaround for Medium's deprecated API. The codebase contains legacy API code (`auth.ts`, `client.ts`) that is **unused** - only the browser automation implementation is active.
+**Key Point**: This project was AI-developed and uses browser automation as a workaround for Medium's deprecated API. All functionality is implemented via browser automation using Playwright.
 
 ## Common Development Commands
 
@@ -77,12 +77,15 @@ npm run test:all
 
 1. **index.ts** - MCP Server Entry Point
    - Implements `MediumMcpServer` class that orchestrates the entire server
-   - Registers 5 MCP tools:
+   - Registers 8 MCP tools:
      1. **`publish-article`**: Create article drafts with title and content (draft-only, no publish)
      2. **`get-my-articles`**: Retrieve all user's Medium articles with status tags (draft/published/unlisted/etc.)
      3. **`get-article-content`**: Extract full content from any Medium article URL
      4. **`search-medium`**: Search Medium for articles by keywords
-     5. **`login-to-medium`**: Manually trigger login process (opens browser)
+     5. **`get-feed`**: Retrieve article headers from Medium feeds (Featured, For You, Following, or All)
+     6. **`get-lists`**: Retrieve user's saved Medium reading lists
+     7. **`get-list-articles`**: Retrieve articles from a specific reading list
+     8. **`login-to-medium`**: Manually trigger login process (opens browser)
    - Handles server lifecycle (initialization, graceful shutdown via SIGINT/SIGTERM)
    - Uses stdio transport for MCP communication
    - Error handling pattern: All tool handlers wrap errors in `isError: true` response format
@@ -99,6 +102,9 @@ npm run test:all
      - `getUserArticles()`: Scrapes user's Medium stories from `/me/stories/public`
      - `getArticleContent()`: Extracts article text with fallback strategies, detects paywalls
      - `searchMediumArticles()`: Searches Medium and extracts result articles
+     - `getFeed()`: Retrieves article headers from Medium feeds (featured/for-you/following/all)
+     - `getLists()`: Retrieves user's saved reading lists from `/me/lists`
+     - `getListArticles()`: Retrieves articles from a specific list by ID
 
 3. **Legacy Files (Unused)**
    - `auth.ts`: Old OAuth implementation for deprecated Medium API
@@ -269,6 +275,7 @@ npx ts-node scripts/debug-publish-modal.ts      # Publish modal inputs
 npx ts-node scripts/test-get-articles-simple.ts  # Verify article retrieval
 npx ts-node scripts/test-get-lists.ts            # Verify list retrieval (v1.3.0+)
 npx ts-node scripts/test-list-articles.ts        # Verify list article retrieval (v1.3.0+)
+npx ts-node scripts/test-feed-all.ts             # Verify feed retrieval from all categories (v1.3.0+)
 npx ts-node scripts/test-publish-article.ts      # Verify draft creation (with tags)
 npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation (no tags)
 npx ts-node scripts/test-login-flow.ts           # Verify login detection
@@ -293,6 +300,7 @@ npx ts-node scripts/test-login-flow.ts           # Verify login detection
 - `test-get-articles-simple.ts` - Quick test of article retrieval
 - `test-get-lists.ts` - Tests getLists() and displays all found lists with details (NEW in v1.3.0)
 - `test-list-articles.ts` - Tests getListArticles() with URL validation (NEW in v1.3.0)
+- `test-feed-all.ts` - Tests getFeed('all') and groups articles by feed category (NEW in v1.3.0)
 - `test-publish-article.ts` - E2E test of publishArticle() with tags
 - `test-publish-no-tags.ts` - Test draft creation without tags (simpler test)
 - `test-login-flow.ts` - Test login validation
