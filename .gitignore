@@ -131,4 +131,7 @@ logs
 # Playwright
 test-results/
 playwright-report/
-playwright/.cache/ 
+playwright/.cache/
+
+# Test fixtures (contain personal data - capture locally)
+tests/fixtures/*.html 

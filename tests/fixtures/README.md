@@ -59,13 +59,15 @@ expect(articles.length).toBeGreaterThan(0);
 
 ## Privacy Note
 
-⚠️ **Do not commit fixtures containing personal data** (article titles, list names, etc.)
+⚠️ **Fixture HTML files are gitignored** - They contain personal data (article titles, list names, etc.)
 
-If you need to share fixtures:
-1. Create a test Medium account
-2. Populate with generic content
-3. Capture fixtures from test account
-4. Add to `.gitignore` if needed
+**What this means:**
+- Fixtures are **not** included in the repository
+- Each developer must capture their own fixtures locally
+- Use `npx ts-node scripts/capture-fixtures.ts` to generate them
+- Your personal data stays on your machine only
+
+**For CI/CD:** You can create fixtures from a test Medium account with generic content if needed.
 
 ## Manual Fixture Creation
 

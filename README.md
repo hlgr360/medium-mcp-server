@@ -541,6 +541,8 @@ medium-mcp-server/
 
 ### Testing
 
+**⚠️ Important**: Fixture files are not included in the repository. See [Fixture-Based Testing](#fixture-based-testing) below for first-time setup instructions.
+
 #### End-to-End Tests (Playwright)
 ```bash
 # Run all E2E tests with Playwright Test
@@ -589,17 +591,35 @@ npm run test:all
 
 #### Fixture-Based Testing
 
-Fixture-based tests validate HTML parsing logic using real Medium page snapshots:
+Fixture-based tests validate HTML parsing logic using real Medium page snapshots.
+
+**⚠️ First-Time Setup Required:**
+
+Fixtures are **not included in the repository** (they contain personal data). You must capture them locally:
+
+```bash
+# 1. Ensure you have a valid Medium session
+# (Run this first if you haven't logged in yet)
+npx ts-node scripts/test-login-flow.ts
+
+# 2. Capture fixtures from your Medium account
+npx ts-node scripts/capture-fixtures.ts
+
+# 3. Verify fixtures were created
+ls -lh tests/fixtures/*.html
+```
 
 **What are fixtures?**
 - Captured HTML snapshots from real Medium pages stored in `tests/fixtures/`
 - Tests run against these snapshots using **linkedom** (CommonJS-compatible DOM parser)
-- Faster than E2E tests, more realistic than mocks
+- Faster than E2E tests (~100ms vs 30s), more realistic than mocks
+- **Account-independent**: Anyone can capture their own fixtures
 
 **When to re-capture fixtures:**
-1. Medium UI changes break selectors
-2. After updating selectors in `browser-client.ts`
-3. Before releasing new versions
+1. **First time running tests** - Fixtures don't exist yet
+2. Medium UI changes break selectors
+3. After updating selectors in `browser-client.ts`
+4. Before releasing new versions
 
 **How to re-capture fixtures:**
 ```bash
