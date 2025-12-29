@@ -2,251 +2,68 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Project Overview](#project-overview)
+- [User Guide](#user-guide)
+  - [Configuration](#configuration)
+  - [Available Tools](#available-tools)
+  - [Session Management](#session-management)
+- [Developer Guide](#developer-guide)
+  - [Development Commands](#development-commands)
+  - [Architecture](#architecture)
+  - [Testing Strategy](#testing-strategy)
+  - [Debugging Workflow](#debugging-workflow)
+  - [Development Guidelines](#development-guidelines)
+- [Reference](#reference)
+  - [Current Selectors](#current-selectors)
+  - [Debug Scripts](#debug-scripts)
+  - [Test Commands](#test-commands)
+- [Known Limitations](#known-limitations)
+
+---
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Install browser
+npx playwright install chromium
+
+# 3. Build project
+npm run build
+
+# 4. Run tests
+npm run test:all
+
+# 5. Start server (for Claude Desktop)
+npm start
+```
+
+**First-time setup for Claude Desktop**: See [Configuration](#configuration)
+
+---
+
 ## Project Overview
 
 Medium MCP Server is a browser-based automation solution for programmatically interacting with Medium's content ecosystem. Since Medium discontinued their public API for new users, this server uses Playwright browser automation to provide content management through the Model Context Protocol (MCP).
 
-**Key Point**: This project was AI-developed and uses browser automation as a workaround for Medium's deprecated API. All functionality is implemented via browser automation using Playwright.
+**Key Points**:
+- ✅ AI-developed workaround for Medium's deprecated API
+- ✅ All functionality via Playwright browser automation
+- ✅ Session persistence to minimize login requirements
+- ✅ Stealth mode to bypass bot detection
+- ⚠️ Browser automation = slower than API (10-30s per operation)
+- ⚠️ Dependent on Medium's UI structure (selectors may break)
 
-## Common Development Commands
+---
 
-### Build and Run
-```bash
-# Install dependencies
-npm install
+## User Guide
 
-# Install Playwright browser (required for automation)
-npx playwright install chromium
-
-# Build the TypeScript project
-npm run build
-
-# Start the MCP server (production)
-npm start
-
-# Development mode with auto-reload
-npm run dev
-```
-
-### Testing
-
-#### End-to-End Tests (Playwright)
-```bash
-# Run all E2E tests with Playwright Test
-npm test
-
-# Run tests with visible browser
-npm run test:headed
-
-# Open Playwright Test UI for debugging
-npm run test:ui
-
-# View HTML test report
-npm run test:report
-```
-
-**E2E Test Coverage**:
-- **Session Management**: Cookie validation, session persistence, expiry detection
-- **Browser Lifecycle**: Initialize/close cycles, headless mode switching
-- **Authentication**: Fast session validation, login timeout handling
-
-#### Unit/Integration Tests (Jest)
-```bash
-# Run all Jest tests
-npm run test:unit
-
-# Run tests in watch mode
-npm run test:unit:watch
-
-# Generate coverage report
-npm run test:unit:coverage
-
-# Run all tests (Jest + Playwright)
-npm run test:all
-```
-
-**Jest Test Coverage**:
-- **Unit Tests (29)**: Cookie validation, expiry detection, headless mode logic
-- **Integration Tests (53)**: BrowserMediumClient methods with mocked Playwright, MCP tool handlers
-- **Total**: 82 tests, ~47% code coverage
-- **Coverage**: Session management, browser lifecycle, validation logic, tool handlers
-
-## Architecture
-
-### Core Components
-
-1. **index.ts** - MCP Server Entry Point
-   - Implements `MediumMcpServer` class that orchestrates the entire server
-   - Registers 8 MCP tools:
-     1. **`publish-article`**: Create article drafts with title and content (draft-only, no publish)
-     2. **`get-my-articles`**: Retrieve all user's Medium articles with status tags (draft/published/unlisted/etc.)
-     3. **`get-article-content`**: Extract full content from any Medium article URL
-     4. **`search-medium`**: Search Medium for articles by keywords
-     5. **`get-feed`**: Retrieve article headers from Medium feeds (Featured, For You, Following, or All)
-     6. **`get-lists`**: Retrieve user's saved Medium reading lists
-     7. **`get-list-articles`**: Retrieve articles from a specific reading list
-     8. **`login-to-medium`**: Manually trigger login process (opens browser)
-   - Handles server lifecycle (initialization, graceful shutdown via SIGINT/SIGTERM)
-   - Uses stdio transport for MCP communication
-   - Error handling pattern: All tool handlers wrap errors in `isError: true` response format
-
-2. **browser-client.ts** - Browser Automation Engine
-   - Implements `BrowserMediumClient` class using Playwright
-   - **Session Management**: Saves/loads login sessions from `medium-session.json` in project root
-   - **Anti-Detection**: Configures browser to bypass automation detection (removes webdriver property, custom user agent)
-   - **Login Flow**: Opens browser for initial login, then runs headless with saved session
-   - **Selector Strategy**: Uses multiple fallback selectors for robustness against Medium UI changes
-   - Key methods:
-     - `ensureLoggedIn()`: Checks session validity with multiple login indicators, triggers interactive login if needed (5-minute timeout)
-     - `publishArticle()`: Navigates to `/new-story`, fills editor, handles draft/publish
-     - `getUserArticles()`: Scrapes user's Medium stories from `/me/stories/public`
-     - `getArticleContent()`: Extracts article text with fallback strategies, detects paywalls
-     - `searchMediumArticles()`: Searches Medium and extracts result articles
-     - `getFeed()`: Retrieves article headers from Medium feeds (featured/for-you/following/all)
-     - `getLists()`: Retrieves user's saved reading lists from `/me/lists`
-     - `getListArticles()`: Retrieves articles from a specific list by ID
-
-3. **Legacy Files (Unused)**
-   - `auth.ts`: Old OAuth implementation for deprecated Medium API
-   - `client.ts`: Old REST API client - DO NOT USE
-
-### Code Quality & Architecture
-
-**Recent Refactorings (Dec 2024 - Phases 3 & 4):**
-
-#### Phase 3: Complex Function Refactoring
-
-Large, monolithic functions were broken down into focused helper methods following the Single Responsibility Principle:
-
-**1. `ensureLoggedIn()` Refactoring (99 lines → 53 lines + 3 helpers)**
-   - **Extracted Methods**:
-     - `checkLoginRedirect()`: Fast session validation via redirect detection
-     - `detectLoginIndicators()`: DOM-based login state detection using multiple selectors
-     - `waitForUserLogin()`: Manual login flow handler with timeout management
-   - **Benefits**: Improved testability, easier debugging, clearer separation of concerns
-   - **Location**: browser-client.ts:172-321
-
-**2. `getUserArticles()` Refactoring (161 lines → 67 lines + 3 helpers)**
-   - **Extracted Methods**:
-     - `parseArticleTabs()`: Tab navigation parsing with article count detection
-     - `mapTabToStatus()`: Maps tab names to article status enum values
-     - `extractArticlesFromTable()`: Article metadata extraction from table rows
-   - **Benefits**: Reduced complexity, reusable table extraction logic, clearer main method flow
-   - **Location**: browser-client.ts:372-566
-
-**Configuration Constants** (Phase 1):
-   - **Timeout Constants**: All magic numbers extracted to `TIMEOUTS` constant (lines 91-99)
-     - `LOGIN`: 300,000ms (5 minutes)
-     - `PAGE_LOAD`: 60,000ms (60 seconds)
-     - `SHORT_WAIT`: 2,000ms (2 seconds)
-     - `CONTENT_WAIT`: 3,000ms (3 seconds)
-     - `EDITOR_LOAD`: 15,000ms (15 seconds)
-     - `NETWORK_IDLE`: 10,000ms (10 seconds)
-   - **Viewport Constants**: `VIEWPORT.WIDTH` (1280) and `VIEWPORT.HEIGHT` (720) at line 100
-   - **Benefits**: Easy to customize, self-documenting, consistent across codebase
-
-#### Phase 4: Type Safety Improvements
-
-Eliminated `any` types throughout the codebase to improve type safety and catch bugs at compile time:
-
-**1. Catch Block Error Handling (10 occurrences)**
-   - **Old**: `catch (error: any) { ... error.message }`
-   - **New**: `catch (error) { const message = error instanceof Error ? error.message : String(error) }`
-   - **Benefits**: Safer error handling, works with both Error objects and other thrown values
-   - **Locations**: browser-client.ts (2), index.ts (8)
-
-**2. Browser Context Options**
-   - **Old**: `const contextOptions: any = {...}`
-   - **New**: `const contextOptions: BrowserContextOptions = {...}`
-   - **Benefits**: IDE autocomplete, compile-time validation of browser options
-   - **Location**: browser-client.ts:96
-
-**3. Article Arrays in Browser Context (5 occurrences)**
-   - **Old**: `const articles: any[] = []`
-   - **New**: Inline type definitions matching return interfaces
-   - **Examples**:
-     - `extractArticlesFromTable`: Typed array with status union type
-     - `searchMediumArticles`: Typed search result structure
-     - `extractArticleCards`: Feed article structure with feedCategory
-     - `getLists`: Reading list structure
-   - **Benefits**: Type safety in browser-side code, catches property mismatches
-   - **Locations**: Lines 455, 893, 1271, 1452, 1581
-
-**4. Storage State Type Definition**
-   - **New Interface**: `StorageState` (lines 64-79) based on Playwright's format
-   - **Typed Methods**: `validateStorageState()` and `getEarliestCookieExpiry()`
-   - **Benefits**: Structured cookie/session validation, prevents invalid state objects
-   - **Locations**: browser-client.ts:1128, 1168
-
-**Type Safety Metrics**:
-   - **Before**: 25 `any` type usages
-   - **After**: ~5 `any` uses (only in legitimate cases: log functions, test helpers)
-   - **Coverage**: ~80% of previous `any` uses eliminated
-   - **Impact**: Stronger compile-time safety, better IDE support, easier refactoring
-
-### Data Flow
-
-```
-MCP Client (Claude)
-  ↓ stdio transport
-MediumMcpServer (index.ts)
-  ↓ tool invocation
-BrowserMediumClient (browser-client.ts)
-  ↓ Playwright automation
-Chromium Browser → Medium Website
-  ↓ DOM manipulation
-Response → JSON → MCP Client
-```
-
-### Session Persistence
-
-**Overview**: The server implements robust session persistence to avoid repeated logins across tool invocations.
-
-**Session File**: `medium-session.json` (gitignored)
-- **Location**: Project root directory
-- **Contents**: Cookies and localStorage state from Medium.com
-- **Format**: JSON file compatible with Playwright's `storageState()` API
-
-**Lifecycle**:
-1. **First Use**: User calls `login-to-medium` tool → Browser opens visibly → User logs in → Session saved
-2. **Subsequent Uses**: Browser loads session → Validates cookies → Auto-switches to headless mode
-3. **Expiry**: Session validation detects expired cookies → Triggers re-login automatically
-
-**Cookie Validation**:
-- `validateStorageState()`: Pre-checks cookie expiration timestamps before browser launch
-- Validates Medium-specific auth cookies (sid, uid, session)
-- Rejects sessions with any expired authentication cookies
-- Logs expiry dates for debugging
-
-**Session Validation**:
-- `validateSessionFast()`: Fast HTTP redirect check (5s vs old 21s DOM selector method)
-- Navigates to `https://medium.com/me` and checks for redirect to login page
-- Much faster than fragile DOM selector-based validation
-
-**Login Flow Optimization (v1.2, Dec 2025)**:
-- **Smart login check**: Always navigates to `/m/signin` first (regardless of session status)
-  - If already logged in → Medium auto-redirects to homepage (session valid!)
-  - If not logged in → Stays on `/m/signin` (ready for login)
-- **Benefits**:
-  - No delay checking selectors on homepage (was 10-20 seconds)
-  - Works for both fresh login AND expired session re-login
-  - Single navigation instead of homepage → check → login page
-  - Uses Medium's built-in redirect behavior for validation
-
-**Headless Mode**:
-- Browser automatically uses headless mode when valid session exists
-- Non-headless mode only for initial login and when `login-to-medium` is called
-- Configurable via `initialize(forceHeadless?: boolean)` parameter
-
-### Error Handling Patterns
-
-- Tools return `{ isError: true, content: [...] }` on failure
-- Browser operations use try-catch with fallback selectors
-- Login timeout: 300 seconds (5 minutes)
-- Page load: waits for 'networkidle' state
-- Graceful degradation: search and article fetch work without login (limited content)
-
-## Configuration for Claude Desktop
+### Configuration
 
 Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
@@ -261,426 +78,388 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 }
 ```
 
-**Important Configuration Notes:**
-- **Use absolute paths only** - Do NOT use `~/` or relative paths
-- **Example:** `"/Users/yourusername/repos/medium-mcp-server/dist/index.js"`
-- **Do NOT use `cwd` parameter** - It's not reliable in Claude Desktop (working directory may be `/`)
-- **Session file location:** Automatically stored in project root as `medium-session.json`
-- **Why this matters:** The server was failing to save sessions because Claude Desktop runs with `cwd=/` (root directory, which is read-only on macOS)
+**Critical Requirements**:
+- ✅ Use **absolute paths only** (no `~/` or relative paths)
+- ✅ Example: `"/Users/yourusername/repos/medium-mcp-server/dist/index.js"`
+- ❌ Do NOT use `cwd` parameter (unreliable in Claude Desktop)
 
-## Important Notes
+**Why**: Claude Desktop may run with `cwd=/` (root), which is read-only on macOS and causes session save failures.
 
-### Browser Automation Considerations
+### Available Tools
 
-- **Speed**: Operations take 10-30 seconds (browser automation overhead). Browser launches fresh for each tool invocation and closes afterward.
-- **Browser Lifecycle**: Browser is NOT persistent - it opens for each operation and closes when done. This saves resources but adds 5-10s startup time per operation.
-- **Stealth Mode (v1.2+)**: Uses `playwright-extra` with `puppeteer-extra-plugin-stealth` to bypass bot detection (Cloudflare, etc.) in headless mode
-  - Masks automation fingerprints (webdriver, navigator properties, WebGL/Canvas)
-  - Allows reliable headless operation without being blocked
-- **Selector Fragility**: Medium UI changes will break selectors - use multiple fallback strategies
-  - **Latest Updates (v1.2, Dec 2025)**:
-    - **Login indicators**: `headerUserButton` → `headerUserIcon`, `write-button` → `headerWriteButton`, added `headerNotificationButton`
-    - **Article list (getUserArticles)**: Complete rewrite for new Medium layout
-      - **Old approach**: `[data-testid="story-preview"]` selector (REMOVED by Medium)
-      - **New approach**: Tab-based scraping with smart detection
-        - Parses tab names to find article counts: "Drafts1", "Published2", etc.
-        - Only scrapes tabs with articles (skips empty tabs)
-        - Handles dual link formats: Edit links `/p/{id}/edit` (drafts) vs public links `/@user/slug-{id}` (published)
-        - Tags each article with status: `draft`, `published`, `unlisted`, `scheduled`, `submission`
-    - **Article editor (publishArticle)**: Updated for new Medium editor selectors
-      - **Old approach**: `[data-testid="richTextEditor"]` selector (REMOVED by Medium)
-      - **New selectors**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
-      - **Debugging**: Use `scripts/debug-editor-wait.ts` to analyze editor DOM structure
-  - **Debugging UI Changes**: Use `scripts/debug-login.ts` and `scripts/debug-articles*.ts` to analyze page structure
-- **Google Login Issues**: Email/password login preferred; Google OAuth may have session persistence issues
-- **Headless Mode**: Browser auto-switches to headless mode after initial login. Non-headless only for `login-to-medium` tool.
-- **Session Validation**: Fast validation check (5s) runs before each operation to ensure session is still valid
+The server provides 8 MCP tools:
 
-### Development Guidelines
+| Tool | Description | Requires Login |
+|------|-------------|----------------|
+| `login-to-medium` | Manually trigger login (opens browser) | N/A |
+| `publish-article` | Create article drafts (draft-only) | ✅ |
+| `get-my-articles` | Retrieve user's articles with status | ✅ |
+| `get-article-content` | Extract content from any article URL | Optional* |
+| `search-medium` | Search Medium by keywords | Optional* |
+| `get-feed` | Retrieve feed articles (Featured/For You/Following/All) | ✅ |
+| `get-lists` | Retrieve user's reading lists | ✅ |
+| `get-list-articles` | Retrieve articles from a specific list | ✅ |
 
-- **When adding new tools**: Follow the pattern in index.ts (Zod schema validation, error wrapping)
-- **⚠️ CRITICAL: Assess fragility before implementing new features**:
-  - **Modal popups are extremely fragile** - Medium frequently changes modal structures, class names, and interaction patterns
-  - **Unstable selectors without data-testid** - Features relying on class names (e.g., `.aew.gd.aex`) or generic tags break often
-  - **Before implementing**, ask the developer:
-    1. Does this feature rely on modal popups? (Save dialogs, share modals, etc.)
-    2. Are there stable `data-testid` attributes, or only fragile class names?
-    3. Is the maintenance burden worth the value given inevitable breakage?
-  - **Red flags that indicate high fragility**:
-    - Generated class names (`.aew`, `.gd`, `.xyz123`)
-    - Modal dialog interactions requiring state detection
-    - Multi-step UI flows with intermediate popups
-    - Features that work differently between mobile/desktop layouts
-  - **Example**: The `toggle-article-save` tool was rolled back because it relied on modal checkbox detection with unstable selectors
-  - **Recommendation**: For high-value features with fragile selectors, warn the developer explicitly before implementation
-- **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
-  - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
-  - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
-  - **Current editor selectors (v1.2)**: Title: `[data-testid="editorTitleParagraph"]`, Content: `[data-testid="editorParagraphText"]`
-  - **Current lists selectors (v1.3.0)**: `[data-testid="readingList"]` (primary), fallback to `a[href*="/list/"]`
-  - **Current feed/list article selectors (v1.3.0)**: `article`, `[data-testid="story-preview"]`, title from `h1/h2/h3`, URL from title link (not first link)
+*Works without login but may get limited/paywalled content
 
-### Debugging Selector Changes
+### Session Management
 
-When Medium updates their UI and selectors break, follow this workflow:
+**How It Works**:
+1. **First Use**: Call `login-to-medium` → Browser opens → You log in → Session saved to `medium-session.json`
+2. **Subsequent Uses**: Session auto-loaded → Browser runs headless → No login required ✅
+3. **Expiry**: Session validated before each operation → Re-login triggered if expired
 
-**Step 1: Identify the broken functionality**
-- Login detection → Use `scripts/debug-login.ts`
-- Article retrieval → Use `scripts/debug-articles-detailed.ts`
-- Article publishing → Use `scripts/debug-editor-page.ts` or `scripts/debug-editor-wait.ts`
-- Publish flow/selectors → Use `scripts/debug-publish-flow.ts`
-- Publish modal/tags → Use `scripts/debug-publish-modal.ts`
-- Lists page → Use `scripts/debug-lists-page.ts` (v1.3.0+)
-- Individual list → Use `scripts/debug-single-list.ts` (v1.3.0+)
+**Session File**: `medium-session.json` (gitignored, stored in project root)
 
-**Step 2: Run the debug script**
+**Session Validation**:
+- Fast redirect check (5s) before each operation
+- Auto-detects expired cookies
+- Auto-switches between headless/visible modes
+
+**Login Preferences**:
+- ✅ **Recommended**: Email/password login
+- ⚠️ **Avoid**: Google OAuth (session persistence issues)
+
+---
+
+## Developer Guide
+
+### Development Commands
+
+#### Build & Run
+
 ```bash
-# All debug scripts open visible browser and output detailed analysis
-npx ts-node scripts/debug-login.ts              # Login page selectors
-npx ts-node scripts/debug-articles-detailed.ts  # Article list DOM structure
-npx ts-node scripts/debug-editor-page.ts        # Editor DOM analysis (saves JSON)
-npx ts-node scripts/debug-editor-wait.ts        # Editor field selectors (15s wait)
-npx ts-node scripts/debug-publish-flow.ts       # Publish flow selectors
-npx ts-node scripts/debug-publish-modal.ts      # Publish modal inputs
+npm install              # Install dependencies
+npm run build            # Build TypeScript
+npm start                # Start MCP server (production)
+npm run dev              # Development mode with auto-reload
 ```
 
-**Step 3: Analyze the output**
-- Look for `data-testid` attributes (Medium's preferred approach)
-- Check button text, aria-labels, and role attributes
-- Identify contenteditable elements for editors
-- Note class names as fallback options
-- Screenshots saved to project root for visual reference
+#### Testing
 
-**Step 4: Update src/browser-client.ts**
-- Replace old selectors with new ones
-- Keep fallback selectors in arrays for robustness
-- Add comment with date: `// Updated Dec 2025 - Medium changed selector`
-- Update both the selector and any related wait conditions
-
-**Step 5: Test the fix**
 ```bash
-# Test scripts to validate fixes
-npx ts-node scripts/test-get-articles-simple.ts  # Verify article retrieval
-npx ts-node scripts/test-get-lists.ts            # Verify list retrieval (v1.3.0+)
-npx ts-node scripts/test-list-articles.ts        # Verify list article retrieval (v1.3.0+)
-npx ts-node scripts/test-feed-all.ts             # Verify feed retrieval from all categories (v1.3.0+)
-npx ts-node scripts/test-publish-article.ts      # Verify draft creation (with tags)
-npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation (no tags)
-npx ts-node scripts/test-login-flow.ts           # Verify login detection
+# Jest (unit + integration + fixtures)
+npm run test:unit                    # All Jest tests (93 tests)
+npm run test:unit:watch              # Watch mode
+npm run test:unit:coverage           # With coverage report
+
+# Playwright (E2E)
+npm test                             # All E2E tests (56 tests)
+npm run test:headed                  # Visible browser
+npm run test:ui                      # Playwright UI
+npm run test:report                  # View HTML report
+
+# Combined
+npm run test:all                     # Jest + Playwright (149 tests)
 ```
 
-**Step 6: Re-capture fixtures and run fixture tests**
+#### Fixture Management
+
 ```bash
-# Re-capture HTML snapshots with new selectors
+# Capture HTML snapshots (requires login)
 npx ts-node scripts/capture-fixtures.ts
 
-# Run fixture-based integration tests
+# Run fixture-based tests
+npm run test:unit -- tests/integration/
+```
+
+### Architecture
+
+**Core Components**:
+
+1. **`index.ts`** - MCP Server
+   - Registers 8 tools with Zod validation
+   - Handles stdio transport and lifecycle
+   - Error wrapping: `{ isError: true, content: [...] }`
+
+2. **`browser-client.ts`** - Browser Automation
+   - Playwright-based automation engine
+   - Session persistence (`medium-session.json`)
+   - Anti-detection (stealth mode)
+   - Multiple fallback selectors
+
+3. **`tests/parsers/`** - Standalone Parsing Modules (NEW)
+   - Extract parsing logic for testability
+   - Work with HTML strings via linkedom
+   - Enable fixture-based testing
+
+**Legacy Files (Unused)**:
+- `auth.ts`, `client.ts` - Old API implementations, DO NOT USE
+
+For detailed architecture, see [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+### Testing Strategy
+
+**Multi-Layered Approach**:
+
+| Layer | Technology | Count | Speed | Purpose |
+|-------|-----------|-------|-------|---------|
+| Unit | Jest | 29 | ~1s | Pure logic, validation |
+| Integration (Mocks) | Jest + Mocks | 53 | ~1.5s | BrowserMediumClient methods |
+| Integration (Fixtures) | Jest + linkedom | 31 | ~0.3s | Parsing with HTML snapshots |
+| E2E | Playwright | 56 | ~6min | Full browser automation |
+| **Total** | | **149** | **~6min** | |
+
+**Test Organization**:
+
+```
+src/__tests__/          # Jest tests with mocks (82 tests)
+├── unit/               # Pure logic (29 tests)
+├── integration/        # Mocked Playwright (53 tests)
+└── helpers/            # Test utilities
+
+tests/                  # Fixture-based & E2E (67 tests)
+├── parsers/            # Standalone parsing modules (NEW)
+├── fixtures/           # HTML snapshots (NEW)
+├── integration/        # Fixture-based tests (31 tests, NEW)
+└── *.spec.ts           # Playwright E2E tests (36 tests)
+```
+
+**Coverage**: ~47% overall (appropriate for browser automation)
+- ✅ Core logic: >80% (session, validation, lifecycle)
+- ⚠️ UI automation: 30-40% (DOM parsing, selectors)
+
+**Why Not 80%+**: DOM selector strategies have 100+ fallback branches; testing mocked selectors provides little value. E2E tests validate UI automation better.
+
+#### Fixture-Based Testing (NEW)
+
+**Benefits**:
+- ✅ **Fast**: ~100ms per test vs 30s E2E
+- ✅ **No login required**: Account-independent
+- ✅ **Deterministic**: HTML fixtures don't change
+- ✅ **Edge cases**: Easy to test paywall, empty states
+
+**Workflow**:
+1. Login to Medium (creates session)
+2. Run `npx ts-node scripts/capture-fixtures.ts`
+3. Fixtures saved to `tests/fixtures/`
+4. Tests use parsers in `tests/parsers/` with fixtures
+
+**When to Update**:
+- After fixing selectors (UI changes)
+- When E2E tests fail (fixtures stale)
+- Adding edge case tests
+- Fixtures >6 months old
+
+**Privacy**: Fixtures may contain personal data (article titles, list names). For public repos, use test account or add to `.gitignore`.
+
+### Debugging Workflow
+
+**When Medium UI Changes Break Selectors**:
+
+#### Step 1: Identify Issue
+
+| Broken Feature | Debug Script |
+|----------------|--------------|
+| Login detection | `scripts/debug-login.ts` |
+| Article retrieval | `scripts/debug-articles-detailed.ts` |
+| Article publishing | `scripts/debug-editor-wait.ts` |
+| Publish flow | `scripts/debug-publish-flow.ts` |
+| Reading lists | `scripts/debug-lists-page.ts` |
+| Individual list | `scripts/debug-single-list.ts` |
+
+#### Step 2: Run Debug Script
+
+```bash
+npx ts-node scripts/debug-login.ts
+# Opens browser, outputs selector analysis, saves screenshots
+```
+
+#### Step 3: Analyze Output
+
+- Look for `data-testid` attributes (most stable)
+- Check `aria-label`, button text, role attributes
+- Note class names (least stable, fallback only)
+- Review screenshots in project root
+
+#### Step 4: Update Selectors
+
+```typescript
+// In browser-client.ts - ADD to fallback array, don't replace
+const selectors = [
+  '[data-testid="newSelector"]',  // NEW - add first
+  '[data-testid="oldSelector"]',  // OLD - keep as fallback
+  'button[aria-label*="user"]'    // GENERIC - always keep
+];
+```
+
+Add comment: `// Updated Dec 2025 - Medium changed UI`
+
+#### Step 5: Test & Update Fixtures
+
+```bash
+# Test the fix
+npx ts-node scripts/test-get-articles-simple.ts
+
+# Re-capture fixtures with new selectors
+npx ts-node scripts/capture-fixtures.ts
+
+# Run fixture tests
 npm run test:unit -- tests/integration/
 
-# Run all E2E tests to verify full flow
+# Run E2E tests
 npm test
 ```
 
-**Step 7: Update documentation**
-- Update current selector lists in CLAUDE.md (this file)
-- Update README.md selector documentation
-- Add to "Recent Selector Changes" section with date
-- Update any code comments in browser-client.ts
+#### Step 6: Update Documentation
 
-**Debug Script Reference:**
-- `debug-login.ts` - Analyzes login page, shows all buttons/indicators
-- `debug-articles-detailed.ts` - Deep analysis of article list table structure
-- `debug-tab-navigation.ts` - Tests tab detection and clicking
-- `debug-editor-page.ts` - Comprehensive editor DOM analysis, saves to editor-analysis.json
-- `debug-editor-wait.ts` - Waits 15s for editor, shows all contenteditable elements
-- `debug-publish-flow.ts` - Tests all selectors for editor fields, title, content, publish buttons
-- `debug-publish-modal.ts` - Analyzes publish modal after clicking Publish button
-- `debug-lists-page.ts` - Analyzes lists page structure, shows all list elements and data-testids (NEW in v1.3.0)
-- `debug-single-list.ts` - Tests navigation to individual list pages, validates URLs (NEW in v1.3.0)
-- `test-get-articles-simple.ts` - Quick test of article retrieval
-- `test-get-lists.ts` - Tests getLists() and displays all found lists with details (NEW in v1.3.0)
-- `test-list-articles.ts` - Tests getListArticles() with URL validation (NEW in v1.3.0)
-- `test-feed-all.ts` - Tests getFeed('all') and groups articles by feed category (NEW in v1.3.0)
-- `test-publish-article.ts` - E2E test of publishArticle() with tags
-- `test-publish-no-tags.ts` - Test draft creation without tags (simpler test)
-- `test-login-flow.ts` - Test login validation
-- **Session debugging**: Delete `medium-session.json` to force re-login
-- **Console logging**: Use `console.error()` for debugging (stdout reserved for MCP JSON protocol)
-- **Browser context**: Silent logging in `page.evaluate()` to avoid JSON serialization issues
+- Update selector list in [Reference](#reference) section
+- Update ARCHITECTURE.md if needed
+- Add entry to git commit message
 
-### Known Limitations
+### Development Guidelines
 
-- Browser automation slower than API calls (unavoidable)
-- Dependent on Medium's website structure (selectors may break)
-- Google login session persistence unreliable (documented AI development limitation)
-- No support for editing existing articles (only new article publishing)
+**Adding New Tools**:
+- Follow pattern in `index.ts` (Zod schema, error wrapping)
+- Add both unit tests (mocks) and E2E tests
+- Consider adding fixture-based tests for parsing logic
 
-## Testing Strategy
+**Updating Selectors**:
+- Add to fallback arrays (don't replace)
+- Prefer `data-testid` > `aria-label` > class names
+- Test with visible browser first (`npm run test:headed`)
+- Update fixtures after confirming fix
 
-This project uses a **multi-layered testing approach** to ensure reliability while acknowledging the challenges of testing browser automation code.
+**⚠️ Assessing Fragility** (CRITICAL):
 
-### Test Layers
+Before implementing new features, assess risk:
 
-1. **Unit Tests (Jest)** - Pure logic, validation, cookie handling
-   - Cookie expiry validation
-   - Session validation logic
-   - Headless mode determination
-   - **Fast execution**: ~1s total
+| Risk Level | Indicators | Action |
+|------------|-----------|--------|
+| 🔴 **High** | Modal popups, generated class names (`.xyz123`), multi-step UI flows | Warn user, consider alternatives |
+| 🟡 **Medium** | No `data-testid`, relies on button text, mobile/desktop differences | Implement with extensive fallbacks |
+| 🟢 **Low** | Stable `data-testid`, consistent DOM structure | Safe to implement |
 
-2. **Integration Tests with Mocks (Jest + Mocks)** - BrowserMediumClient methods with mocked Playwright
-   - Browser initialization flow
-   - Session loading and saving
-   - Method parameter validation
-   - MCP tool handler logic
-   - **Fast execution**: ~1.5s total
+**Example**: The `toggle-article-save` tool was rolled back due to modal checkbox detection with unstable selectors.
 
-3. **Integration Tests with Fixtures (Jest + jsdom)** - Parsing logic with HTML fixtures
-   - Article parsing from saved HTML snapshots
-   - List parsing without live browser
-   - Content extraction with edge cases
-   - **Fast execution**: ~100ms per test
-   - **Account-independent**: No Medium login needed
-   - Located in `tests/integration/` using fixtures from `tests/fixtures/`
-   - See **Fixture-Based Testing** section below for details
+**Best Practices**:
+- Browser automation is inherently fragile
+- Medium changes UI frequently
+- Plan for maintenance overhead
+- Use E2E tests to catch breakage early
 
-4. **E2E Tests (Playwright)** - Real browser automation for critical flows
-   - Full login flow with visible browser
-   - Session persistence across browser restarts
-   - Article publishing end-to-end
-   - **Slower execution**: 30-60s per test
+---
 
-### Test Organization
+## Reference
 
-```
-src/
-├── __tests__/
-│   ├── unit/                    # Pure unit tests (29 tests)
-│   │   ├── validation.test.ts   # Cookie validation logic
-│   │   ├── cookie-utils.test.ts # Cookie expiry detection
-│   │   └── headless-mode.test.ts # Headless mode logic
-│   ├── integration/             # Integration tests with mocks (53 tests)
-│   │   ├── browser-client.test.ts # BrowserMediumClient methods
-│   │   └── mcp-tools.test.ts     # MCP tool handlers
-│   └── helpers/                 # Test utilities
-│       ├── mock-playwright.ts   # Playwright mock factory
-│       ├── fixtures.ts          # Test data (sessions, articles)
-│       └── matchers.ts          # Custom Jest matchers
-tests/
-├── integration/                 # Fixture-based integration tests (NEW)
-│   ├── article-parser.test.ts   # Article parsing with fixtures
-│   ├── list-parser.test.ts      # List parsing with fixtures
-│   └── content-parser.test.ts   # Content parsing with fixtures
-├── parsers/                     # Standalone parsing modules (NEW)
-│   ├── article-parser.ts        # Article extraction logic
-│   ├── list-parser.ts           # List extraction logic
-│   ├── feed-parser.ts           # Feed article extraction
-│   └── content-parser.ts        # Content extraction logic
-├── fixtures/                    # HTML snapshots (NEW)
-│   ├── user-articles-page.html
-│   ├── reading-lists-page.html
-│   └── article-content-public.html
-└── *.spec.ts                    # Playwright E2E tests (18 tests)
+### Current Selectors
+
+**Login Indicators** (v1.2+):
+```typescript
+'[data-testid="headerUserIcon"]'
+'[data-testid="headerWriteButton"]'
+'[data-testid="headerNotificationButton"]'
+'button[aria-label*="user"]'
 ```
 
-### Coverage Philosophy
+**Article List** (v1.2+):
+```typescript
+'table tbody tr'  // Container
+'h2'              // Title
+'a[href*="/p/"][href*="/edit"]'  // Draft links
+'a[href*="/@"]'   // Published links
+```
 
-**Current Coverage: ~47% overall, 49% browser-client.ts**
+**Article Editor** (v1.2+):
+```typescript
+'[data-testid="editorTitleParagraph"]'   // Title field
+'[data-testid="editorParagraphText"]'    // Content field
+```
 
-This coverage level is **appropriate for browser automation code** because:
+**Reading Lists** (v1.3.0+):
+```typescript
+'[data-testid="readingList"]'   // Primary
+'a[href*="/list/"]'             // Fallback
+```
 
-- ✅ **Core logic is well-tested**: Session management, validation, lifecycle (all >80%)
-- ✅ **Integration points are tested**: All MCP tool handlers have tests
-- ⚠️ **Complex UI automation is under-tested**: DOM parsing, selector fallbacks (30-40%)
-- ⚠️ **Browser interaction is hard to mock**: Login flow, content extraction, search parsing
+**Feed Articles** (v1.3.0+):
+```typescript
+'article'                        // Container
+'[data-testid="story-preview"]'  // Alternative container
+'h1', 'h2', 'h3'                // Title
+```
 
-**Why NOT aiming for 80%+ coverage:**
-- DOM selector strategies have many fallback paths (100+ branches)
-- Playwright page.evaluate() logic is complex to mock meaningfully
-- Testing mocked selectors provides little value (fragile, low signal)
-- E2E tests provide better validation for UI automation
+### Debug Scripts
 
-**Coverage Targets:**
-- **Short term**: Maintain ~50% (current baseline)
-- **Medium term**: 60% statements, 50% branches (realistic for browser code)
-- **Long term**: Focus on test quality over quantity
+**Analysis Scripts** (open browser, output details):
 
-### Testing Best Practices
+| Script | Purpose | Output |
+|--------|---------|--------|
+| `debug-login.ts` | Login page selectors | Console + screenshot |
+| `debug-articles-detailed.ts` | Article list DOM | Console analysis |
+| `debug-editor-wait.ts` | Editor selectors (15s wait) | Contenteditable elements |
+| `debug-publish-flow.ts` | Publish flow selectors | All editor elements |
+| `debug-lists-page.ts` | Lists page structure | All list elements |
+| `debug-single-list.ts` | Individual list navigation | URL validation |
 
-When adding new features:
-1. **Start with unit tests** for pure logic (validation, calculations)
-2. **Add integration tests** for method flows with mocked Playwright
-3. **Add E2E tests** only for critical user-facing flows
-4. **Don't mock complex DOM interactions** - use E2E or skip
+**Test Scripts** (validate fixes):
 
-When debugging:
-- **Jest tests**: Fast iteration for logic bugs
-- **Playwright UI mode**: Visual debugging for selector issues
-- **Debug scripts**: `scripts/debug-login.ts` for analyzing page structure
+| Script | Purpose |
+|--------|---------|
+| `test-get-articles-simple.ts` | Quick article retrieval test |
+| `test-get-lists.ts` | List retrieval with details |
+| `test-list-articles.ts` | List article retrieval |
+| `test-feed-all.ts` | Feed retrieval (all categories) |
+| `test-publish-article.ts` | Draft creation with tags |
+| `test-login-flow.ts` | Login detection |
 
-### Running Specific Test Suites
+### Test Commands
+
+**Quick Reference**:
 
 ```bash
-# Unit tests only (fast iteration)
+# Unit tests only
 npm run test:unit -- src/__tests__/unit/
 
-# Integration tests with mocks
+# Integration tests (mocks)
 npm run test:unit -- src/__tests__/integration/
 
-# Fixture-based integration tests (NEW)
+# Fixture-based tests (NEW)
 npm run test:unit -- tests/integration/
+
+# E2E tests
+npm test
 
 # Specific test file
 npm run test:unit -- src/__tests__/unit/validation.test.ts
 
-# E2E tests only
-npm test
-
-# Everything
+# All tests
 npm run test:all
 ```
 
-## Fixture-Based Testing
+**Test Counts**:
+- Jest: 93 tests (29 unit + 53 integration w/ mocks + 11 fixture-based)
+- Playwright: 56 tests (E2E)
+- **Total**: 149 tests
 
-**New in December 2024**: This project now supports fixture-based integration testing, allowing fast, deterministic tests without requiring a Medium account or live browser.
+**Session Management Tests** (Optimized):
+- Reduced logins: 3 → **1** ✅
+- Save/restore pattern preserves session
+- Subsequent test suites reuse session
+- Test time: 8 tests in ~37s (was 9 tests in ~66s)
 
-### Architecture
+---
 
-The parsing logic has been extracted from `browser-client.ts` into standalone, testable modules:
+## Known Limitations
 
-- **`tests/parsers/article-parser.ts`** - Extract articles from /me/stories HTML
-- **`tests/parsers/list-parser.ts`** - Extract reading lists from /me/lists HTML
-- **`tests/parsers/feed-parser.ts`** - Extract feed articles from homepage HTML
-- **`tests/parsers/content-parser.ts`** - Extract article content from article pages
+- ⏱️ **Speed**: 10-30s per operation (browser automation overhead)
+- 🔄 **Browser Lifecycle**: Fresh launch per operation (5-10s startup)
+- 🎭 **Stealth Mode**: Uses `playwright-extra` + stealth plugin (v1.2+) to bypass Cloudflare
+- 🔧 **Selector Fragility**: Medium UI changes break selectors frequently
+- 🔐 **Google Login**: Email/password preferred; Google OAuth has session issues
+- ✏️ **Write Operations**: Draft creation only (no publish, no editing existing articles)
+- 🌐 **Content Access**: Works without login but gets paywalled/preview content
 
-These parsers use [jsdom](https://github.com/jsdom/jsdom) to parse HTML strings, making them testable without Playwright.
+**Browser Automation Reality**:
+- Not as reliable as APIs
+- Requires ongoing maintenance
+- Medium changes UI frequently
+- Plan for selector breakage
 
-### Capturing Fixtures
+---
 
-**First-time setup:**
+## Additional Resources
 
-1. Login to Medium (creates `medium-session.json`):
-   ```bash
-   # Use the login-to-medium MCP tool or run the server
-   ```
-
-2. Capture HTML snapshots from your account:
-   ```bash
-   npx ts-node scripts/capture-fixtures.ts
-   ```
-
-This saves HTML to `tests/fixtures/`:
-- `user-articles-page.html` - Your articles with tabs
-- `reading-lists-page.html` - Your reading lists
-- `article-content-public.html` - Public article content
-- `feed-featured.html` - Featured feed articles
-- `*-empty.html` - Empty state fixtures (generated)
-
-### Using Fixtures in Tests
-
-```typescript
-import { ArticleParser } from '../parsers/article-parser';
-import { readFileSync } from 'fs';
-
-const html = readFileSync('tests/fixtures/user-articles-page.html', 'utf-8');
-const articles = ArticleParser.extractArticlesFromTable(html, 'draft');
-
-expect(articles[0].title).toBeDefined();
-expect(articles[0].url).toMatch(/medium\.com/);
-```
-
-### When to Update Fixtures
-
-**Always re-capture fixtures when Medium changes their UI:**
-
-1. **After fixing selectors** - Fixtures must match new HTML structure
-2. **When E2E tests fail** - Indicates UI changes, fixtures now stale
-3. **Adding edge case tests** - Need HTML for specific test scenarios
-4. **Fixtures >6 months old** - Proactive refresh to match current Medium UI
-
-**Workflow:**
-```bash
-# Fix selectors in browser-client.ts first, then:
-npx ts-node scripts/capture-fixtures.ts        # Re-capture HTML
-npm run test:unit -- tests/integration/        # Verify fixtures work
-npm test                                        # Verify E2E tests pass
-```
-
-This ensures fixture-based tests stay synchronized with browser-client.ts logic.
-
-### Fixture vs E2E Tests
-
-| Aspect | Fixture Tests | E2E Tests |
-|--------|---------------|-----------|
-| Speed | ~100ms | ~30s |
-| Requires login | No | Yes |
-| Requires network | No | Yes |
-| Tests navigation | No | Yes |
-| Tests parsing | Yes | Yes |
-| Account-dependent | No | Yes |
-| Good for | Edge cases, logic | Smoke tests, flows |
-
-**Recommended approach:**
-- Use **fixture tests** for comprehensive parsing logic coverage (~50+ test cases)
-- Use **E2E tests** for critical user flows and smoke testing (~10-20 tests)
-- Update **both** when selectors change
-
-### Privacy & Sharing
-
-⚠️ **Fixtures may contain personal data** (article titles, list names, etc.)
-
-For public repositories:
-1. Add `tests/fixtures/*.html` to `.gitignore`
-2. Create a test Medium account with generic content
-3. Capture fixtures from test account
-4. Share via separate secure channel if needed
-
-Or manually create minimal fixtures for specific test cases (see `tests/fixtures/README.md`).
-
-## TypeScript Configuration
-
-- Target: ES2020
-- Module: CommonJS (required for MCP SDK)
-- Strict mode enabled
-- Source: `src/`, Output: `dist/`
-- DOM types included for Playwright browser context
-
-### Dependency Version Lock
-
-**Important**: This project uses `@modelcontextprotocol/sdk@1.21.2` (locked in package.json without caret).
-
-**Do NOT update to v1.22.0+** - newer versions introduce TypeScript type changes that cause infinite type recursion during compilation:
-```
-error TS2589: Type instantiation is excessively deep and possibly infinite
-```
-
-**Timeline of Breaking Changes**:
-- **v1.15.0** (July 17, 2024) - Original working version
-- **v1.16.0-v1.21.2** (July-November 2024) - Compatible, builds successfully ✓
-- **v1.21.2** (November 2024) - **CURRENT VERSION** - Last version before breaking changes ✓
-- **v1.22.0** (Nov 13, 2024) - `registerTool` now accepts `ZodType` for input/output schemas - **BREAKS BUILD**
-- **v1.23.0** (Nov 25, 2024) - Added Zod v4 support with backwards compatibility for v3.25+
-- **v1.24.0** (Dec 2, 2024) - Updated `registerTool` signature for typed `ToolCallback`, Zod v4 transformations
-- **v1.25.0+** (Dec 15, 2024) - Moved Role type, removed `@cfworker/json-schema` dependency, removed loose/passthrough types
-
-**Root Cause**: Starting in v1.22.0, the SDK changed how `server.tool()` handles Zod schema types. The new deeply nested generic types for tool registration cause TypeScript's type checker to enter infinite recursion when inferring types for complex Zod schemas (especially with `.optional()`, `.default()`, `.describe()` chaining).
-
-**Version is locked**: The package.json specifies `"@modelcontextprotocol/sdk": "~1.21.2"` using tilde (`~`) to allow patch updates (1.21.x) but prevent minor/major version upgrades. This means security patches can be applied automatically while blocking the breaking changes in v1.22.0+.
-
-**Future Upgrade**: To use v1.22.0+, you'll need to refactor tool registration to use explicit type annotations or simpler schema definitions that don't trigger TypeScript's recursion limit.
-
-### Stealth Dependencies (v1.2+)
-
-**Added for bot detection bypass**: `playwright-extra` + `puppeteer-extra-plugin-stealth`
-
-These dependencies enable headless browser operation without being blocked by Cloudflare and other bot detection systems:
-- **playwright-extra**: Wrapper around Playwright that enables plugin support
-- **puppeteer-extra-plugin-stealth**: Plugin that masks automation fingerprints
-
-**Why needed**: Medium uses Cloudflare which blocks standard headless browsers. The stealth plugin:
-- Removes `navigator.webdriver` property
-- Spoofs Chrome DevTools Protocol detection
-- Masks WebGL/Canvas fingerprinting
-- Fixes timezone/locale inconsistencies
-- Passes most bot detection tests
-
-**Installation**: Already included in package.json dependencies. No special configuration needed.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed technical architecture
+- [README.md](./README.md) - User documentation
+- [tests/fixtures/README.md](./tests/fixtures/README.md) - Fixture usage guide
