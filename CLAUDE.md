@@ -299,6 +299,20 @@ Add to Claude MCP settings (`~/Library/Application Support/Claude/claude_desktop
 ### Development Guidelines
 
 - **When adding new tools**: Follow the pattern in index.ts (Zod schema validation, error wrapping)
+- **⚠️ CRITICAL: Assess fragility before implementing new features**:
+  - **Modal popups are extremely fragile** - Medium frequently changes modal structures, class names, and interaction patterns
+  - **Unstable selectors without data-testid** - Features relying on class names (e.g., `.aew.gd.aex`) or generic tags break often
+  - **Before implementing**, ask the developer:
+    1. Does this feature rely on modal popups? (Save dialogs, share modals, etc.)
+    2. Are there stable `data-testid` attributes, or only fragile class names?
+    3. Is the maintenance burden worth the value given inevitable breakage?
+  - **Red flags that indicate high fragility**:
+    - Generated class names (`.aew`, `.gd`, `.xyz123`)
+    - Modal dialog interactions requiring state detection
+    - Multi-step UI flows with intermediate popups
+    - Features that work differently between mobile/desktop layouts
+  - **Example**: The `toggle-article-save` tool was rolled back because it relied on modal checkbox detection with unstable selectors
+  - **Recommendation**: For high-value features with fragile selectors, warn the developer explicitly before implementation
 - **When updating selectors**: Add new selectors to fallback arrays, don't replace existing ones
   - **Current login selectors (v1.2)**: `[data-testid="headerUserIcon"]`, `[data-testid="headerWriteButton"]`, `[data-testid="headerNotificationButton"]`, `button[aria-label*="user"]`
   - **Current article list selectors (v1.2)**: `table tbody tr` containing `h2` and `a[href*="/p/"][href*="/edit"]`
