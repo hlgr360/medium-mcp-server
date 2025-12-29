@@ -608,8 +608,15 @@ npx ts-node scripts/capture-fixtures.ts
 **How it works:**
 - When you run fixture tests, they automatically check if fixtures exist
 - If missing, they run the capture script automatically (~30 seconds)
-- No manual setup needed - just run the tests!
-- Requires a valid Medium session (login once via E2E test or MCP tool)
+- **Uses existing `medium-session.json`** - no additional login required!
+- If you don't have a session yet, create one first:
+  ```bash
+  # Create session (one-time, opens browser for login)
+  npx ts-node scripts/test-login-flow.ts
+
+  # Then run tests - fixtures auto-capture using existing session
+  npm run test:unit
+  ```
 
 **What are fixtures?**
 - Captured HTML snapshots from real Medium pages stored in `tests/fixtures/`

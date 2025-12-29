@@ -33,7 +33,19 @@ function fixturesExist(): boolean {
  * Capture fixtures by running the capture script
  */
 function captureFixtures(): void {
-  console.log('\n📸 Fixtures not found. Capturing from Medium...\n');
+  const sessionPath = join(__dirname, '..', '..', 'medium-session.json');
+
+  // Check for session file first
+  if (!existsSync(sessionPath)) {
+    console.error('\n❌ Cannot capture fixtures: No Medium session found!\n');
+    console.error('Please create a session first (one-time setup):');
+    console.error('   npx ts-node scripts/test-login-flow.ts\n');
+    console.error('Then run tests again. Fixtures will auto-capture using your session.\n');
+    throw new Error('Medium session required for fixture capture');
+  }
+
+  console.log('\n📸 Fixtures not found. Auto-capturing from Medium...\n');
+  console.log('Using existing session from medium-session.json');
   console.log('This is a one-time setup that takes ~30 seconds.\n');
 
   try {
