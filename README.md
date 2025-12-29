@@ -31,6 +31,8 @@ Want to understand the full story behind Medium MCP? Check out the comprehensive
 - Model Context Protocol (MCP)
 - Playwright Browser Automation
 - Advanced Content Parsing
+- Stealth Mode (bypasses bot detection)
+- Multi-layered Testing (Unit, Integration, Fixtures, E2E)
 
 ## Getting Started
 
@@ -402,14 +404,23 @@ When Medium updates their website, selectors break. Here's how to fix them:
 | **Article List** | `scripts/debug-articles-detailed.ts` | Analyze articles page DOM | Table structure, tabs, link formats, article counts |
 | **Article List** | `scripts/debug-tab-navigation.ts` | Test tab clicking | Tab detection, navigation behavior |
 | **Article Editor** | `scripts/debug-editor-wait.ts` | Analyze editor selectors | Title/content fields, contenteditable elements, placeholders |
+| **Article Editor** | `scripts/debug-editor-page.ts` | Comprehensive editor DOM | Saves full editor analysis to JSON |
+| **Publish Flow** | `scripts/debug-publish-flow.ts` | Test publish flow | Editor fields, publish buttons, flow validation |
 | **Publish Modal** | `scripts/debug-publish-modal.ts` | Analyze publish modal | Tag inputs, publish buttons, modal structure |
+| **Lists Page** | `scripts/debug-lists-page.ts` | Analyze lists page structure | List elements, data-testid values, list counts |
+| **Single List** | `scripts/debug-single-list.ts` | Test list navigation | List page URLs, article detection |
+| **Fixtures** | `scripts/capture-fixtures.ts` | Capture HTML snapshots | Saves HTML to tests/fixtures/ for fixture tests |
 
 #### Test Scripts for Validation
 
 | **Test Script** | **Purpose** | **Expected Result** |
 |-----------------|-------------|---------------------|
 | `scripts/test-get-articles-simple.ts` | Test article retrieval | Lists all articles with status tags |
-| `scripts/test-publish-no-tags.ts` | Test draft creation | Successfully creates draft |
+| `scripts/test-get-lists.ts` | Test reading lists retrieval | Displays all reading lists with details |
+| `scripts/test-list-articles.ts` | Test list articles retrieval | Shows articles from specific list |
+| `scripts/test-feed-all.ts` | Test feed retrieval | Fetches articles from all feed categories |
+| `scripts/test-publish-article.ts` | Test draft with tags | Successfully creates draft with tags |
+| `scripts/test-publish-no-tags.ts` | Test draft creation | Successfully creates draft without tags |
 | `scripts/test-login-flow.ts` | Test login detection | Confirms session is valid |
 
 #### How to Use Debug Scripts
@@ -458,6 +469,8 @@ npx ts-node scripts/debug-login.ts
 
 ## Development
 
+> **For detailed technical documentation**, see [ARCHITECTURE.md](ARCHITECTURE.md) which covers code quality improvements, type safety enhancements, session management internals, and browser lifecycle details.
+
 ### Project Structure
 ```
 medium-mcp-server/
@@ -478,33 +491,53 @@ medium-mcp-server/
 │           ├── mock-playwright.ts    # Playwright mock factory
 │           ├── fixtures.ts           # Test data
 │           └── matchers.ts           # Custom Jest matchers
-├── tests/                            # Playwright E2E tests
+├── tests/                            # Playwright E2E & fixture tests
+│   ├── parsers/                      # Standalone parsing modules (NEW)
+│   │   ├── article-list-parser.ts    # Parse article list HTML
+│   │   ├── article-content-parser.ts # Parse article content HTML
+│   │   ├── feed-parser.ts            # Parse feed HTML
+│   │   └── lists-parser.ts           # Parse lists HTML
+│   ├── fixtures/                     # HTML snapshots for testing (NEW)
+│   │   ├── article-list.html         # Sample article list page
+│   │   ├── article-content.html      # Sample article content
+│   │   ├── feed.html                 # Sample feed page
+│   │   └── lists.html                # Sample lists page
+│   ├── integration/                  # Fixture-based tests (11 tests, NEW)
+│   │   └── html-parsing.test.ts      # Test parsers against fixtures
 │   ├── session-management.spec.ts    # Session persistence E2E
 │   ├── browser-lifecycle.spec.ts     # Browser lifecycle E2E
 │   ├── authentication.spec.ts        # Authentication E2E
-│   └── get-user-articles.spec.ts     # Article retrieval E2E (NEW v1.2)
+│   └── get-user-articles.spec.ts     # Article retrieval E2E (v1.2)
 ├── scripts/
 │   ├── debug-login.ts                # Debug login selector issues
 │   ├── debug-articles.ts             # Debug article page structure
 │   ├── debug-articles-detailed.ts    # Deep article DOM analysis
-│   ├── debug-table-structure.ts      # Analyze article table structure
-│   └── test-all-articles.ts          # Quick test for getUserArticles
+│   ├── debug-editor-page.ts          # Editor DOM analysis
+│   ├── debug-lists-page.ts           # Lists page analysis
+│   ├── capture-fixtures.ts           # Capture HTML snapshots for testing
+│   ├── test-get-articles-simple.ts   # Test article retrieval
+│   ├── test-get-lists.ts             # Test reading lists
+│   └── test-feed-all.ts              # Test feed retrieval
 ├── dist/                             # Compiled JavaScript output
 ├── medium-session.json               # Saved login session (gitignored)
 ├── package.json                      # Dependencies and scripts
 ├── tsconfig.json                     # TypeScript configuration
 ├── jest.config.js                    # Jest test configuration
 ├── playwright.config.ts              # Playwright E2E configuration
-├── CLAUDE.md                         # AI development guide
-└── README.md                         # This file
+├── CLAUDE.md                         # AI development guide (concise)
+├── ARCHITECTURE.md                   # Technical deep-dive (detailed)
+└── README.md                         # This file (user-facing)
 ```
 
 **Key Files:**
 - **index.ts**: MCP server with 8 registered tools
 - **browser-client.ts**: Core Playwright automation engine
 - **medium-session.json**: Persistent login session storage
+- **tests/parsers/**: Standalone HTML parsing modules (linkedom-based)
+- **tests/fixtures/**: Captured Medium page snapshots for fixture testing
+- **scripts/capture-fixtures.ts**: Tool for capturing fresh HTML snapshots
+- **scripts/debug-*.ts**: Debugging tools for Medium UI changes
 - **auth.ts/client.ts**: Legacy API code (unused, kept for reference)
-- **scripts/debug-login.ts**: Debugging tool for Medium UI changes
 
 ### Testing
 
@@ -524,12 +557,13 @@ npm run test:report
 ```
 
 **E2E Test Coverage**:
-- Session persistence and cookie validation
+- Session persistence and cookie validation (optimized: 1 login instead of 3)
 - Browser lifecycle management
 - Authentication and session validation
 - Headless mode switching
 - **Article retrieval** (v1.2): Tab-based scraping, status tagging, dual link formats
 - **Article publishing** (v1.2): Draft creation with new editor selectors
+- **Session optimization**: Tests use save/restore pattern to minimize login operations
 
 #### Unit/Integration Tests (Jest)
 ```bash
@@ -547,11 +581,44 @@ npm run test:all
 ```
 
 **Unit/Integration Test Coverage**:
-- Cookie validation and expiry detection (29 unit tests)
-- BrowserMediumClient integration with mocked Playwright (32 tests)
-- MCP tool handler methods (21 tests)
-- **Total**: 82 Jest tests, 47% code coverage
-- **Coverage**: session management, browser lifecycle, validation logic
+- **Unit Tests (29)**: Cookie validation, expiry detection, headless mode logic
+- **Integration Tests (53)**: BrowserMediumClient with mocked Playwright, MCP tool handlers
+- **Fixture-Based Tests (11)**: HTML snapshot parsing with linkedom (CommonJS-compatible DOM parser)
+- **Total**: 93 Jest tests, ~47% code coverage
+- **Coverage**: Session management, browser lifecycle, validation logic, content parsing
+
+#### Fixture-Based Testing
+
+Fixture-based tests validate HTML parsing logic using real Medium page snapshots:
+
+**What are fixtures?**
+- Captured HTML snapshots from real Medium pages stored in `tests/fixtures/`
+- Tests run against these snapshots using **linkedom** (CommonJS-compatible DOM parser)
+- Faster than E2E tests, more realistic than mocks
+
+**When to re-capture fixtures:**
+1. Medium UI changes break selectors
+2. After updating selectors in `browser-client.ts`
+3. Before releasing new versions
+
+**How to re-capture fixtures:**
+```bash
+# Capture fresh HTML snapshots from Medium
+npx ts-node scripts/capture-fixtures.ts
+
+# Run fixture tests to validate parsing
+npm run test:unit -- tests/integration/html-parsing.test.ts
+
+# All tests should pass with new fixtures
+```
+
+**What gets captured:**
+- Article list page HTML (`article-list.html`)
+- Article content page HTML (`article-content.html`)
+- Feed page HTML (`feed.html`)
+- Lists page HTML (`lists.html`)
+
+**Note**: linkedom is used instead of jsdom for CommonJS compatibility with Jest. It provides a lightweight DOM implementation suitable for testing Medium's HTML structure.
 
 #### Build & Run
 ```bash
