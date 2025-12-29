@@ -509,6 +509,7 @@ medium-mcp-server/
 │   ├── authentication.spec.ts        # Authentication E2E
 │   └── get-user-articles.spec.ts     # Article retrieval E2E (v1.2)
 ├── scripts/
+│   ├── setup-test-session.ts         # Playwright globalSetup (auto-login)
 │   ├── debug-login.ts                # Debug login selector issues
 │   ├── debug-articles.ts             # Debug article page structure
 │   ├── debug-articles-detailed.ts    # Deep article DOM analysis
@@ -543,12 +544,38 @@ medium-mcp-server/
 
 **⚠️ Important**: Fixture files are not included in the repository. See [Fixture-Based Testing](#fixture-based-testing) below for first-time setup instructions.
 
+#### Automated Test Session Setup
+
+**One-Time Login, Then Always Headless:**
+
+Tests automatically manage Medium login sessions via `globalSetup`:
+
+1. **First run** (no session file):
+   - Browser opens visibly for manual login
+   - You log in to Medium (5-minute timeout)
+   - Session saved to `medium-session.json`
+   - Tests run headless
+
+2. **Subsequent runs** (valid session exists):
+   - Session validated automatically
+   - All tests run headless immediately
+   - **No browser popups!**
+
+3. **Expired session**:
+   - Auto-detects expired cookies
+   - Opens browser for re-login
+   - Updates session, continues headless
+
+**Session Files:**
+- `medium-session.json` - Main session (persisted across runs)
+- `medium-session.test.json` - Test-specific session (cleaned up after tests)
+
 #### End-to-End Tests (Playwright)
 ```bash
 # Run all E2E tests with Playwright Test
 npm test
 
-# Run tests with visible browser
+# Run tests with visible browser (for debugging)
 npm run test:headed
 
 # Open Playwright Test UI for debugging
@@ -559,13 +586,13 @@ npm run test:report
 ```
 
 **E2E Test Coverage**:
-- Session persistence and cookie validation (optimized: 1 login instead of 3)
+- Session persistence and cookie validation
 - Browser lifecycle management
 - Authentication and session validation
 - Headless mode switching
 - **Article retrieval** (v1.2): Tab-based scraping, status tagging, dual link formats
 - **Article publishing** (v1.2): Draft creation with new editor selectors
-- **Session optimization**: Tests use save/restore pattern to minimize login operations
+- **Automated session setup**: One-time login via globalSetup, no manual session management needed
 
 #### Unit/Integration Tests (Jest)
 ```bash
