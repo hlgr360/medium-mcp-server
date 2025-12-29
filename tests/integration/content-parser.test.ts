@@ -7,6 +7,7 @@
 import { ContentParser } from '../parsers/content-parser';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { ensureFixtures } from '../helpers/ensure-fixtures';
 
 const fixturesDir = join(__dirname, '..', 'fixtures');
 
@@ -19,6 +20,10 @@ function loadFixture(filename: string): string {
 }
 
 describe('ContentParser', () => {
+  // Auto-capture fixtures if they don't exist
+  beforeAll(async () => {
+    await ensureFixtures();
+  });
   describe('extractArticleContent()', () => {
     it('should extract content from public article fixture', () => {
       const html = loadFixture('article-content-public.html');

@@ -8,6 +8,7 @@
 import { ArticleParser } from '../parsers/article-parser';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { ensureFixtures } from '../helpers/ensure-fixtures';
 
 const fixturesDir = join(__dirname, '..', 'fixtures');
 
@@ -21,6 +22,10 @@ function loadFixture(filename: string): string {
 }
 
 describe('ArticleParser', () => {
+  // Auto-capture fixtures if they don't exist
+  beforeAll(async () => {
+    await ensureFixtures();
+  });
   describe('parseArticleTabs()', () => {
     it('should parse tab names and counts from user articles page', () => {
       const html = loadFixture('user-articles-page.html');

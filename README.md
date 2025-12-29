@@ -593,21 +593,23 @@ npm run test:all
 
 Fixture-based tests validate HTML parsing logic using real Medium page snapshots.
 
-**⚠️ First-Time Setup Required:**
+**⚠️ First-Time Setup (Automatic):**
 
-Fixtures are **not included in the repository** (they contain personal data). You must capture them locally:
+Fixtures are **not included in the repository** (they contain personal data). However, they are **automatically captured** when you first run fixture tests:
 
 ```bash
-# 1. Ensure you have a valid Medium session
-# (Run this first if you haven't logged in yet)
-npx ts-node scripts/test-login-flow.ts
+# Option 1: Automatic (recommended) - fixtures auto-capture on first run
+npm run test:unit
 
-# 2. Capture fixtures from your Medium account
+# Option 2: Manual capture (if you prefer)
 npx ts-node scripts/capture-fixtures.ts
-
-# 3. Verify fixtures were created
-ls -lh tests/fixtures/*.html
 ```
+
+**How it works:**
+- When you run fixture tests, they automatically check if fixtures exist
+- If missing, they run the capture script automatically (~30 seconds)
+- No manual setup needed - just run the tests!
+- Requires a valid Medium session (login once via E2E test or MCP tool)
 
 **What are fixtures?**
 - Captured HTML snapshots from real Medium pages stored in `tests/fixtures/`

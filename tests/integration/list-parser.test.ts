@@ -7,6 +7,7 @@
 import { ListParser } from '../parsers/list-parser';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { ensureFixtures } from '../helpers/ensure-fixtures';
 
 const fixturesDir = join(__dirname, '..', 'fixtures');
 
@@ -19,6 +20,10 @@ function loadFixture(filename: string): string {
 }
 
 describe('ListParser', () => {
+  // Auto-capture fixtures if they don't exist
+  beforeAll(async () => {
+    await ensureFixtures();
+  });
   describe('parseReadingLists()', () => {
     it('should parse reading lists from fixture', () => {
       const html = loadFixture('reading-lists-page.html');
