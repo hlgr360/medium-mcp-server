@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { BrowserMediumClient } from './browser-client';
+import { logger } from './logger';
 
 // Load environment variables
 config();
@@ -304,13 +305,13 @@ class MediumMcpServer {
         try {
           // Force non-headless mode for login so user can interact
           await this.mediumClient.initialize(false);
-          console.error('🌐 Browser opened for login (non-headless)');
+          logger.info('🌐 Browser opened for login (non-headless)');
 
           const success = await this.mediumClient.ensureLoggedIn();
 
           // Close browser after login
           await this.mediumClient.close();
-          console.error('🔒 Browser closed after login');
+          logger.info('🔒 Browser closed after login');
 
           return {
             content: [
@@ -350,21 +351,21 @@ class MediumMcpServer {
     try {
       // Initialize browser (will use headless mode if valid session exists)
       await this.mediumClient.initialize();
-      console.error('🌐 Browser initialized for operation');
+      logger.info('🌐 Browser initialized for operation');
 
       // Validate session fast (5s check vs 21s DOM selector check)
       const isValid = await this.mediumClient.validateSessionFast();
       if (!isValid) {
-        console.error('🔐 Session invalid or missing, attempting login...');
+        logger.warn('🔐 Session invalid or missing, attempting login...');
         await this.mediumClient.ensureLoggedIn();
       }
 
       // Execute the operation
-      console.error('⚙️  Executing operation...');
+      logger.info('⚙️  Executing operation...');
       return await operation();
     } finally {
       // CRITICAL: Always close browser after operation to free resources
-      console.error('🔒 Closing browser after operation');
+      logger.info('🔒 Closing browser after operation');
       await this.mediumClient.close();
     }
   }
@@ -377,11 +378,11 @@ class MediumMcpServer {
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      console.error("🚀 Medium MCP Server (Browser-based) Initialized");
-      console.error("💡 Browser will launch on-demand for each operation");
-      console.error("💡 Use 'login-to-medium' tool first if you don't have a saved session");
+      logger.info("🚀 Medium MCP Server (Browser-based) Initialized");
+      logger.info("💡 Browser will launch on-demand for each operation");
+      logger.info("💡 Use 'login-to-medium' tool first if you don't have a saved session");
     } catch (error) {
-      console.error("Failed to start server:", error);
+      logger.error("Failed to start server:", error);
       throw error;
     }
   }
@@ -398,13 +399,13 @@ async function main() {
   
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.error("🛑 Shutting down Medium MCP Server...");
+    logger.info("🛑 Shutting down Medium MCP Server...");
     await server.cleanup();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.error("🛑 Shutting down Medium MCP Server...");
+    logger.info("🛑 Shutting down Medium MCP Server...");
     await server.cleanup();
     process.exit(0);
   });
@@ -413,6 +414,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error("Fatal error:", error);
+  logger.error("Fatal error:", error);
   process.exit(1);
 });

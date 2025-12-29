@@ -188,6 +188,78 @@ npm run test:unit -- tests/integration/
 
 For detailed architecture, see [ARCHITECTURE.md](./ARCHITECTURE.md)
 
+### Logging Best Practices
+
+**Overview**: This project uses a custom Logger class (`src/logger.ts`) that provides semantic log levels while routing all output to stderr to maintain MCP protocol integrity.
+
+**Why stderr?**: The MCP protocol uses stdio transport where stdout is reserved for JSON protocol messages. All logging must go to stderr (via `process.stderr.write()`) to avoid polluting the communication channel.
+
+**Log Levels**: The Logger provides 5 semantic levels with automatic test suppression:
+
+| Level | Emoji | Use Case | Test Mode |
+|-------|-------|----------|-----------|
+| TRACE | 🔍 | Extremely detailed diagnostics | Suppressed |
+| DEBUG | 🐛 | Detailed debugging information | Suppressed |
+| INFO | ℹ️  | Normal operational messages | Suppressed |
+| WARN | ⚠️  | Warning conditions | **Shown** |
+| ERROR | ❌ | Error conditions | **Shown** |
+
+**Test Mode Behavior**: When running in test environments (Jest, Playwright), the logger automatically suppresses TRACE/DEBUG/INFO levels while showing WARN/ERROR. This keeps test output clean while preserving important diagnostic information.
+
+**Usage**:
+
+```typescript
+import { logger } from './logger';
+
+// TRACE: Extremely detailed diagnostic information
+logger.trace('Found login indicators: headerUserIcon, headerWriteButton');
+logger.trace('Fetching from tab: Drafts (3 articles)');
+logger.trace('Current page URL:', url);
+
+// DEBUG: Detailed debugging information
+logger.debug('═══════════════════════════════════════');
+logger.debug('🔧 INITIALIZE DIAGNOSTICS');
+logger.debug('   Working directory:', process.cwd());
+logger.debug('   Session path:', sessionPath);
+logger.debug('   Session file exists:', fs.existsSync(sessionPath));
+logger.debug('═══════════════════════════════════════');
+
+// INFO: Normal operational messages
+logger.info('🚀 Medium MCP Server (Browser-based) Initialized');
+logger.info('📚 Fetching user reading lists...');
+logger.info('✅ Found 5 reading lists');
+logger.info('🌐 Browser initialized for operation');
+
+// WARN: Warning conditions (potential issues)
+logger.warn('⚠️  Session file has expired cookies, will re-authenticate');
+logger.warn('🔐 Session invalid or missing, attempting login...');
+logger.warn('⏱️  Network idle timeout after 10s, continuing anyway');
+
+// ERROR: Error conditions (failures, exceptions)
+logger.error('❌ Failed to save session:', error);
+logger.error('❌ Browser not initialized');
+logger.error('❌ Error fetching article content:', error.message);
+```
+
+**When to Use Each Level**:
+
+- **TRACE**: DOM element selection, cookie details, navigation steps, selector debugging
+- **DEBUG**: Diagnostic blocks, operation progress, intermediate values, file paths/sizes
+- **INFO**: User-facing messages, operation start/completion, state changes, guidance
+- **WARN**: Session expired, timeouts with fallback, missing optional data, degraded functionality
+- **ERROR**: Operation failures, invalid state, exceptions in catch blocks, actual errors
+
+**Migration Notes**:
+- **DO NOT** wrap logger calls in `if (!isTestEnvironment())` checks - the logger handles suppression internally
+- **Categorize carefully**: Review each console.error statement's context before choosing a log level
+- **Preserve emojis**: Keep emoji prefixes for visual scanning (🚀 ✅ ❌ ⚠️  📚 🔍 etc.)
+- **stderr only**: Never use console.log or console.info - always use the logger
+
+**Environment Detection**: The logger automatically detects test environments via:
+- `process.env.NODE_ENV === 'test'`
+- `process.env.JEST_WORKER_ID !== undefined`
+- `process.env.PLAYWRIGHT_TEST !== undefined`
+
 ### Testing Strategy
 
 **Multi-Layered Approach**:
