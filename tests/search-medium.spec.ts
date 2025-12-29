@@ -64,9 +64,6 @@ test.describe('searchMediumArticles() E2E', () => {
 
     // Content should be a string (preview/snippet)
     expect(typeof firstResult.content).toBe('string');
-
-    console.log(`✅ First result: "${firstResult.title}"`);
-    console.log(`   URL: ${firstResult.url}`);
   }, 60000);
 
   test('should handle multiple keywords', async () => {
@@ -121,24 +118,17 @@ test.describe('searchMediumArticles() E2E', () => {
     expect(results.length).toBeGreaterThan(0);
 
     // Check optional metadata fields (may or may not be present)
-    results.slice(0, 3).forEach((article, index) => {
-      console.log(`\nArticle ${index + 1}:`);
-      console.log(`  Title: ${article.title}`);
-      console.log(`  URL: ${article.url}`);
-
+    results.slice(0, 3).forEach((article) => {
       // Optional fields
       if (article.publishDate) {
-        console.log(`  Published: ${article.publishDate}`);
         expect(typeof article.publishDate).toBe('string');
       }
 
       if (article.tags && article.tags.length > 0) {
-        console.log(`  Tags: ${article.tags.join(', ')}`);
         expect(Array.isArray(article.tags)).toBe(true);
       }
 
       if (article.claps !== undefined) {
-        console.log(`  Claps: ${article.claps}`);
         expect(typeof article.claps).toBe('number');
       }
     });

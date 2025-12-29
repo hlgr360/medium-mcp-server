@@ -76,17 +76,6 @@ test.describe('getUserArticles() E2E', () => {
         // Content should be empty string (not fetched by getUserArticles)
         expect(article.content).toBe('');
       });
-
-      console.log(`✅ Validated ${articles.length} article(s)`);
-
-      // Log status distribution
-      const byStatus: { [key: string]: number } = {};
-      articles.forEach(a => {
-        const status = a.status || 'unknown';
-        byStatus[status] = (byStatus[status] || 0) + 1;
-      });
-
-      console.log('📊 Status distribution:', byStatus);
     } else {
       console.log('ℹ️  No articles found (this is OK if you have no articles)');
     }
@@ -116,8 +105,6 @@ test.describe('getUserArticles() E2E', () => {
       statusArticles.forEach(article => {
         expect(article.status).toBe(status);
       });
-
-      console.log(`  ${status}: ${statusArticles.length} article(s)`);
     });
   });
 
@@ -143,8 +130,6 @@ test.describe('getUserArticles() E2E', () => {
       const isSourceParam = url.includes('?source=');
 
       expect(isDraftFormat || isPublishedFormat || isSourceParam).toBe(true);
-
-      console.log(`  ${article.status}: ${article.title.substring(0, 40)} → ${url.substring(0, 60)}`);
     });
   });
 

@@ -65,10 +65,6 @@ test.describe('getFeed() E2E', () => {
             expect(typeof article.readTime).toBe('string');
           }
         });
-
-        console.log(`✅ ${category}: Retrieved ${articles.length} article(s)`);
-        console.log(`   Sample: "${articles[0].title.substring(0, 50)}..."`);
-        console.log(`   URL: ${articles[0].url}`);
       } else {
         console.log(`ℹ️  ${category}: No articles found (this may be normal)`);
       }
@@ -93,9 +89,6 @@ test.describe('getFeed() E2E', () => {
       const featured = articles.filter(a => a.feedCategory === 'featured');
       const forYou = articles.filter(a => a.feedCategory === 'for-you');
       const following = articles.filter(a => a.feedCategory === 'following');
-
-      console.log(`✅ all: Retrieved ${articles.length} article(s) total`);
-      console.log(`   Featured: ${featured.length}, For You: ${forYou.length}, Following: ${following.length}`);
 
       // At least one category should have articles (unless all feeds are empty)
       if (articles.length > 0) {

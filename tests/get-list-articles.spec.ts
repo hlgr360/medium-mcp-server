@@ -43,7 +43,6 @@ test.describe('getListArticles() E2E', () => {
     const lists = await client.getLists();
     if (lists.length > 0) {
       testListId = lists[0].id;
-      console.log(`📋 Using test list: "${lists[0].name}" (ID: ${testListId})`);
     } else {
       console.log('⚠️  No lists available for testing');
     }
@@ -75,10 +74,6 @@ test.describe('getListArticles() E2E', () => {
         expect(article.url).toBeDefined();
         expect(article.url).toMatch(/medium\.com/);
       });
-
-      console.log(`✅ Retrieved ${articles.length} article(s) from list`);
-      console.log(`   Sample: "${articles[0].title.substring(0, 50)}..."`);
-      console.log(`   URL: ${articles[0].url}`);
     } else {
       console.log('ℹ️  List is empty (no articles)');
     }

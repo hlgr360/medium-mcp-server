@@ -63,11 +63,6 @@ test.describe('getLists() E2E', () => {
           expect(list.articleCount).toBeGreaterThanOrEqual(0);
         }
       });
-
-      console.log(`✅ Retrieved ${lists.length} list(s)`);
-      lists.forEach(list => {
-        console.log(`   - "${list.name}" (${list.articleCount || '?'} articles)`);
-      });
     } else {
       console.log('ℹ️  No lists found (user may have no saved lists)');
     }
