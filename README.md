@@ -21,7 +21,6 @@ Want to understand the full story behind Medium MCP? Check out the comprehensive
 - 📚 **Retrieve your articles** from your Medium profile
 - 📰 **Browse Medium feeds** - Featured, For You, and Following feeds (NEW in v1.3.0)
 - 📋 **Manage reading lists** - Browse and access your saved collections (NEW in v1.3.0)
-- 🔖 **Save/unsave articles** - Add and remove articles from your reading lists (NEW in v1.4.0)
 - 🔍 **Search Medium articles** by keywords
 - 📖 **Read full articles** - Extract content from any Medium URL
 - 💾 **Session persistence** - login once, use everywhere
@@ -149,7 +148,7 @@ Add this to your Claude MCP configuration (`~/Library/Application Support/Claude
 
 ## Available MCP Tools
 
-This server exposes 9 MCP tools for Medium interaction:
+This server exposes 8 MCP tools for Medium interaction:
 
 ### Content Creation & Management
 1. **`publish-article`** - Create article drafts with title and content
@@ -159,14 +158,13 @@ This server exposes 9 MCP tools for Medium interaction:
 3. **`get-feed`** - Retrieve article headers from Medium feeds (Featured, For You, Following)
 4. **`get-lists`** - Retrieve your saved Medium reading lists
 5. **`get-list-articles`** - Retrieve articles from a specific reading list
-6. **`toggle-article-save`** - Save or unsave an article to a reading list (NEW in v1.4.0)
-7. **`search-medium`** - Search Medium for articles by keywords
+6. **`search-medium`** - Search Medium for articles by keywords
 
 ### Content Reading
-8. **`get-article-content`** - Extract full content from any Medium article URL
+7. **`get-article-content`** - Extract full content from any Medium article URL
 
 ### Authentication
-9. **`login-to-medium`** - Manually trigger login process (opens browser)
+8. **`login-to-medium`** - Manually trigger login process (opens browser)
 
 ---
 
@@ -224,42 +222,7 @@ Retrieve articles from a specific reading list (NEW in v1.3.0)
 // Use the 'url' field with get-article-content to read full articles
 ```
 
-### 6. `toggle-article-save`
-Save or unsave a Medium article to a specific reading list (NEW in v1.4.0)
-
-```typescript
-{
-  articleUrl: string,  // Full URL of the Medium article
-  listId: string       // List ID from get-lists
-}
-```
-
-**How it works**:
-1. Navigates to the article page
-2. Finds the save/bookmark button
-3. Automatically detects current save state (saved/unsaved)
-4. Toggles the state (save → unsave, unsave → save)
-5. Returns the action taken
-
-**Example Response**:
-```json
-{
-  "success": true,
-  "action": "saved",
-  "listId": "abc123xyz",
-  "listName": "Reading List",
-  "articleUrl": "https://medium.com/@user/article-title-123abc",
-  "message": "Article saved to list \"Reading List\""
-}
-```
-
-**Notes**:
-- You must have at least one reading list created on Medium
-- Use `get-lists` to get available list IDs
-- The tool automatically detects whether to save or unsave
-- Works with any Medium article URL (from feeds, search, or direct links)
-
-### 7. `search-medium`
+### 6. `search-medium`
 Search Medium for articles by keywords
 ```typescript
 {
@@ -267,7 +230,7 @@ Search Medium for articles by keywords
 }
 ```
 
-### 8. `get-article-content`
+### 7. `get-article-content`
 Get full content of any Medium article
 ```typescript
 {
@@ -275,7 +238,7 @@ Get full content of any Medium article
 }
 ```
 
-### 9. `login-to-medium`
+### 8. `login-to-medium`
 Manually trigger login process
 ```typescript
 // No parameters needed
@@ -354,35 +317,6 @@ Claude:
    Returns: Array of articles with titles, excerpts, and URLs
 
 3. (Optional) Uses get-article-content tool with specific URLs to read full articles
-```
-
-### Example 4: Saving Articles to Reading Lists (NEW in v1.4.0)
-```
-User: "Save this article to my 'Reading Later' list: https://medium.com/@author/article-title-123"
-
-Claude:
-1. Uses get-lists tool →
-   Returns: [
-     { id: "reading-later-abc123", name: "Reading Later", ... },
-     ...
-   ]
-
-2. Uses toggle-article-save tool with articleUrl and listId='reading-later-abc123' →
-   Returns: {
-     "success": true,
-     "action": "saved",
-     "listName": "Reading Later",
-     "message": "Article saved to list \"Reading Later\""
-   }
-
-3. User: "Actually, remove it from that list"
-
-4. Uses toggle-article-save tool again with same parameters →
-   Returns: {
-     "success": true,
-     "action": "unsaved",
-     "message": "Article unsaved from list \"Reading Later\""
-   }
 ```
 
 ## Troubleshooting
@@ -549,9 +483,7 @@ medium-mcp-server/
 │   ├── debug-articles.ts             # Debug article page structure
 │   ├── debug-articles-detailed.ts    # Deep article DOM analysis
 │   ├── debug-table-structure.ts      # Analyze article table structure
-│   ├── debug-save-button.ts          # Debug article save button (NEW v1.4.0)
-│   ├── test-all-articles.ts          # Quick test for getUserArticles
-│   └── test-save-article.ts          # E2E test for save/unsave (NEW v1.4.0)
+│   └── test-all-articles.ts          # Quick test for getUserArticles
 ├── dist/                             # Compiled JavaScript output
 ├── medium-session.json               # Saved login session (gitignored)
 ├── package.json                      # Dependencies and scripts
@@ -563,12 +495,11 @@ medium-mcp-server/
 ```
 
 **Key Files:**
-- **index.ts**: MCP server with 9 registered tools
+- **index.ts**: MCP server with 8 registered tools
 - **browser-client.ts**: Core Playwright automation engine
 - **medium-session.json**: Persistent login session storage
 - **auth.ts/client.ts**: Legacy API code (unused, kept for reference)
-- **scripts/debug-*.ts**: Debugging tools for Medium UI changes
-- **scripts/test-*.ts**: E2E test scripts for functionality validation
+- **scripts/debug-login.ts**: Debugging tool for Medium UI changes
 
 ### Testing
 
