@@ -66,8 +66,8 @@ test.describe('Session Management', () => {
 
   test('should create session file with cookies and origins after successful login', async () => {
     // Note: This test requires manual intervention for login
-    // Skip in CI/CD environments
-    test.skip(process.env.CI === 'true', 'Requires manual login');
+    // Skip by default (only run when explicitly requested with MANUAL_LOGIN_TEST=true)
+    test.skip(process.env.MANUAL_LOGIN_TEST !== 'true', 'Requires manual login - set MANUAL_LOGIN_TEST=true to run');
 
     await client.initialize(false); // Non-headless for login
 

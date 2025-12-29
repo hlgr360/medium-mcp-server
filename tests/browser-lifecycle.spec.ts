@@ -63,6 +63,10 @@ test.describe('Browser Lifecycle', () => {
   });
 
   test('should use non-headless mode when forced', async () => {
+    // Skip this test by default to avoid opening visible browser during test runs
+    // Run with HEADED_MODE_TEST=true to test non-headless mode explicitly
+    test.skip(process.env.HEADED_MODE_TEST !== 'true', 'Skipped - opens visible browser (set HEADED_MODE_TEST=true to run)');
+
     // Force non-headless mode
     await client.initialize(false);
 

@@ -28,6 +28,9 @@ export default defineConfig({
 
   // Shared settings for all tests
   use: {
+    // Run headless by default (use npm run test:headed for visible browser)
+    headless: true,
+
     // Capture trace on first retry
     trace: 'on-first-retry',
 
