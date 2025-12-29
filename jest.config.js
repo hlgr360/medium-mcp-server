@@ -2,6 +2,11 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
 
+  // Enable experimental VM modules for jsdom ESM dependencies
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
+  },
+
   // Test file patterns
   testMatch: [
     '**/__tests__/**/*.test.ts',
@@ -12,8 +17,9 @@ module.exports = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
-    '/tests/',      // Playwright tests
-    '/scripts/'     // Old test scripts
+    '/tests/.*\\.spec\\.ts$',  // Playwright E2E tests only (*.spec.ts)
+    '/tests/fixtures/',         // HTML snapshot files
+    '/scripts/'                 // Old test scripts
   ],
 
   // Coverage collection

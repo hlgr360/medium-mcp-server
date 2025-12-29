@@ -369,7 +369,19 @@ npx ts-node scripts/test-publish-no-tags.ts      # Verify draft creation (no tag
 npx ts-node scripts/test-login-flow.ts           # Verify login detection
 ```
 
-**Step 6: Update documentation**
+**Step 6: Re-capture fixtures and run fixture tests**
+```bash
+# Re-capture HTML snapshots with new selectors
+npx ts-node scripts/capture-fixtures.ts
+
+# Run fixture-based integration tests
+npm run test:unit -- tests/integration/
+
+# Run all E2E tests to verify full flow
+npm test
+```
+
+**Step 7: Update documentation**
 - Update current selector lists in CLAUDE.md (this file)
 - Update README.md selector documentation
 - Add to "Recent Selector Changes" section with date
@@ -415,14 +427,23 @@ This project uses a **multi-layered testing approach** to ensure reliability whi
    - Headless mode determination
    - **Fast execution**: ~1s total
 
-2. **Integration Tests (Jest + Mocks)** - BrowserMediumClient methods with mocked Playwright
+2. **Integration Tests with Mocks (Jest + Mocks)** - BrowserMediumClient methods with mocked Playwright
    - Browser initialization flow
    - Session loading and saving
    - Method parameter validation
    - MCP tool handler logic
    - **Fast execution**: ~1.5s total
 
-3. **E2E Tests (Playwright)** - Real browser automation for critical flows
+3. **Integration Tests with Fixtures (Jest + jsdom)** - Parsing logic with HTML fixtures
+   - Article parsing from saved HTML snapshots
+   - List parsing without live browser
+   - Content extraction with edge cases
+   - **Fast execution**: ~100ms per test
+   - **Account-independent**: No Medium login needed
+   - Located in `tests/integration/` using fixtures from `tests/fixtures/`
+   - See **Fixture-Based Testing** section below for details
+
+4. **E2E Tests (Playwright)** - Real browser automation for critical flows
    - Full login flow with visible browser
    - Session persistence across browser restarts
    - Article publishing end-to-end
@@ -437,14 +458,28 @@ src/
 │   │   ├── validation.test.ts   # Cookie validation logic
 │   │   ├── cookie-utils.test.ts # Cookie expiry detection
 │   │   └── headless-mode.test.ts # Headless mode logic
-│   ├── integration/             # Integration tests (53 tests)
+│   ├── integration/             # Integration tests with mocks (53 tests)
 │   │   ├── browser-client.test.ts # BrowserMediumClient methods
 │   │   └── mcp-tools.test.ts     # MCP tool handlers
 │   └── helpers/                 # Test utilities
 │       ├── mock-playwright.ts   # Playwright mock factory
 │       ├── fixtures.ts          # Test data (sessions, articles)
 │       └── matchers.ts          # Custom Jest matchers
-tests/                           # Playwright E2E tests (18 tests)
+tests/
+├── integration/                 # Fixture-based integration tests (NEW)
+│   ├── article-parser.test.ts   # Article parsing with fixtures
+│   ├── list-parser.test.ts      # List parsing with fixtures
+│   └── content-parser.test.ts   # Content parsing with fixtures
+├── parsers/                     # Standalone parsing modules (NEW)
+│   ├── article-parser.ts        # Article extraction logic
+│   ├── list-parser.ts           # List extraction logic
+│   ├── feed-parser.ts           # Feed article extraction
+│   └── content-parser.ts        # Content extraction logic
+├── fixtures/                    # HTML snapshots (NEW)
+│   ├── user-articles-page.html
+│   ├── reading-lists-page.html
+│   └── article-content-public.html
+└── *.spec.ts                    # Playwright E2E tests (18 tests)
 ```
 
 ### Coverage Philosophy
@@ -488,8 +523,11 @@ When debugging:
 # Unit tests only (fast iteration)
 npm run test:unit -- src/__tests__/unit/
 
-# Integration tests only
+# Integration tests with mocks
 npm run test:unit -- src/__tests__/integration/
+
+# Fixture-based integration tests (NEW)
+npm run test:unit -- tests/integration/
 
 # Specific test file
 npm run test:unit -- src/__tests__/unit/validation.test.ts
@@ -500,6 +538,103 @@ npm test
 # Everything
 npm run test:all
 ```
+
+## Fixture-Based Testing
+
+**New in December 2024**: This project now supports fixture-based integration testing, allowing fast, deterministic tests without requiring a Medium account or live browser.
+
+### Architecture
+
+The parsing logic has been extracted from `browser-client.ts` into standalone, testable modules:
+
+- **`tests/parsers/article-parser.ts`** - Extract articles from /me/stories HTML
+- **`tests/parsers/list-parser.ts`** - Extract reading lists from /me/lists HTML
+- **`tests/parsers/feed-parser.ts`** - Extract feed articles from homepage HTML
+- **`tests/parsers/content-parser.ts`** - Extract article content from article pages
+
+These parsers use [jsdom](https://github.com/jsdom/jsdom) to parse HTML strings, making them testable without Playwright.
+
+### Capturing Fixtures
+
+**First-time setup:**
+
+1. Login to Medium (creates `medium-session.json`):
+   ```bash
+   # Use the login-to-medium MCP tool or run the server
+   ```
+
+2. Capture HTML snapshots from your account:
+   ```bash
+   npx ts-node scripts/capture-fixtures.ts
+   ```
+
+This saves HTML to `tests/fixtures/`:
+- `user-articles-page.html` - Your articles with tabs
+- `reading-lists-page.html` - Your reading lists
+- `article-content-public.html` - Public article content
+- `feed-featured.html` - Featured feed articles
+- `*-empty.html` - Empty state fixtures (generated)
+
+### Using Fixtures in Tests
+
+```typescript
+import { ArticleParser } from '../parsers/article-parser';
+import { readFileSync } from 'fs';
+
+const html = readFileSync('tests/fixtures/user-articles-page.html', 'utf-8');
+const articles = ArticleParser.extractArticlesFromTable(html, 'draft');
+
+expect(articles[0].title).toBeDefined();
+expect(articles[0].url).toMatch(/medium\.com/);
+```
+
+### When to Update Fixtures
+
+**Always re-capture fixtures when Medium changes their UI:**
+
+1. **After fixing selectors** - Fixtures must match new HTML structure
+2. **When E2E tests fail** - Indicates UI changes, fixtures now stale
+3. **Adding edge case tests** - Need HTML for specific test scenarios
+4. **Fixtures >6 months old** - Proactive refresh to match current Medium UI
+
+**Workflow:**
+```bash
+# Fix selectors in browser-client.ts first, then:
+npx ts-node scripts/capture-fixtures.ts        # Re-capture HTML
+npm run test:unit -- tests/integration/        # Verify fixtures work
+npm test                                        # Verify E2E tests pass
+```
+
+This ensures fixture-based tests stay synchronized with browser-client.ts logic.
+
+### Fixture vs E2E Tests
+
+| Aspect | Fixture Tests | E2E Tests |
+|--------|---------------|-----------|
+| Speed | ~100ms | ~30s |
+| Requires login | No | Yes |
+| Requires network | No | Yes |
+| Tests navigation | No | Yes |
+| Tests parsing | Yes | Yes |
+| Account-dependent | No | Yes |
+| Good for | Edge cases, logic | Smoke tests, flows |
+
+**Recommended approach:**
+- Use **fixture tests** for comprehensive parsing logic coverage (~50+ test cases)
+- Use **E2E tests** for critical user flows and smoke testing (~10-20 tests)
+- Update **both** when selectors change
+
+### Privacy & Sharing
+
+⚠️ **Fixtures may contain personal data** (article titles, list names, etc.)
+
+For public repositories:
+1. Add `tests/fixtures/*.html` to `.gitignore`
+2. Create a test Medium account with generic content
+3. Capture fixtures from test account
+4. Share via separate secure channel if needed
+
+Or manually create minimal fixtures for specific test cases (see `tests/fixtures/README.md`).
 
 ## TypeScript Configuration
 

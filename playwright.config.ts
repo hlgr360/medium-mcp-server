@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
 
+  // Only run E2E tests (*.spec.ts), exclude Jest integration tests (*.test.ts)
+  testMatch: '**/*.spec.ts',
+
   // Maximum time one test can run
   timeout: 60000, // 60 seconds per test
 

@@ -110,6 +110,9 @@ Medium UI selectors are defined with fallback strategies throughout `browser-cli
 2. Update selectors in `browser-client.ts`
 3. Add new selectors to fallback arrays (don't replace existing ones)
 4. Test with corresponding test script
+5. **Re-capture fixtures**: `npx ts-node scripts/capture-fixtures.ts`
+6. **Run fixture tests**: `npm run test:unit -- tests/integration/`
+7. Update documentation with new selectors
 
 For detailed selector debugging workflow, see the "Medium UI Changes - Debugging Selector Issues" section below.
 
@@ -387,7 +390,9 @@ When Medium updates their website, selectors break. Here's how to fix them:
 3. **Analyze the output** to find new selectors
 4. **Update `src/browser-client.ts`** with new selectors
 5. **Run the corresponding test** to verify the fix
-6. **Update documentation** (README.md, CLAUDE.md) with new selectors
+6. **Re-capture fixtures**: `npx ts-node scripts/capture-fixtures.ts`
+7. **Run fixture-based tests**: `npm run test:unit -- tests/integration/`
+8. **Update documentation** (README.md, CLAUDE.md) with new selectors
 
 #### Debug Scripts by Functionality
 

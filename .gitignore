@@ -81,6 +81,7 @@ jspm_packages/
 
 # Medium MCP Server specific
 medium-session.json
+medium-session.backup.json
 playwright-session.json
 session-*.json
 

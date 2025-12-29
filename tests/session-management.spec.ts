@@ -8,7 +8,36 @@ import { join } from 'path';
  */
 test.describe('Session Management', () => {
   const sessionPath = join(__dirname, '..', 'medium-session.json');
+  const sessionBackupPath = join(__dirname, '..', 'medium-session.backup.json');
+  const sessionTempPath = join(__dirname, '..', 'medium-session.temp.json');
   let client: BrowserMediumClient;
+  let lastValidSession: string | null = null;
+
+  // Save existing session before running session management tests
+  test.beforeAll(() => {
+    if (existsSync(sessionPath)) {
+      const sessionData = readFileSync(sessionPath, 'utf8');
+      writeFileSync(sessionBackupPath, sessionData);
+      console.log('💾 Saved existing session to backup');
+    }
+  });
+
+  // Restore session after all session management tests complete
+  test.afterAll(() => {
+    // First, check if we have a backup to restore
+    if (existsSync(sessionBackupPath)) {
+      const sessionData = readFileSync(sessionBackupPath, 'utf8');
+      writeFileSync(sessionPath, sessionData);
+      unlinkSync(sessionBackupPath);
+      console.log('✅ Restored session from backup');
+    } else if (lastValidSession) {
+      // No backup but we have a valid session from tests - keep it
+      writeFileSync(sessionPath, lastValidSession);
+      console.log('✅ Kept valid session created during tests');
+    } else {
+      console.log('ℹ️  No session to restore (started without valid session)');
+    }
+  });
 
   test.beforeEach(() => {
     client = new BrowserMediumClient();
@@ -18,15 +47,24 @@ test.describe('Session Management', () => {
     }
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({ }, testInfo) => {
     await client.close();
+
+    // Save any valid session created by the login test
+    const isLoginTest = testInfo.title.includes('should create session file with cookies and origins after successful login');
+
+    if (isLoginTest && testInfo.status === 'passed' && existsSync(sessionPath)) {
+      lastValidSession = readFileSync(sessionPath, 'utf8');
+      console.log('💾 Saved session from successful login test');
+    }
+
     // Clean up session file after each test
     if (existsSync(sessionPath)) {
       unlinkSync(sessionPath);
     }
   });
 
-  test('should create session file after successful login', async () => {
+  test('should create session file with cookies and origins after successful login', async () => {
     // Note: This test requires manual intervention for login
     // Skip in CI/CD environments
     test.skip(process.env.CI === 'true', 'Requires manual login');
@@ -42,9 +80,22 @@ test.describe('Session Management', () => {
 
       // Verify session file has valid structure
       const sessionData = JSON.parse(readFileSync(sessionPath, 'utf8'));
+
+      // Check cookies
       expect(sessionData).toHaveProperty('cookies');
       expect(Array.isArray(sessionData.cookies)).toBe(true);
       expect(sessionData.cookies.length).toBeGreaterThan(0);
+
+      // Check that cookies have required fields
+      const cookie = sessionData.cookies[0];
+      expect(cookie).toHaveProperty('name');
+      expect(cookie).toHaveProperty('value');
+      expect(cookie).toHaveProperty('domain');
+      expect(cookie).toHaveProperty('path');
+
+      // Check origins (localStorage)
+      expect(sessionData.origins).toBeDefined();
+      expect(Array.isArray(sessionData.origins)).toBe(true);
     }
   });
 
@@ -119,36 +170,6 @@ test.describe('Session Management', () => {
 
     // Initialize should handle corrupted file
     await expect(client.initialize()).resolves.not.toThrow();
-  });
-
-  test('should save session with cookies and origins', async () => {
-    test.skip(process.env.CI === 'true', 'Requires manual login');
-
-    await client.initialize(false);
-
-    const success = await client.ensureLoggedIn();
-
-    if (success) {
-      // Verify session structure
-      const sessionData = JSON.parse(readFileSync(sessionPath, 'utf8'));
-
-      // Check cookies
-      expect(sessionData.cookies).toBeDefined();
-      expect(Array.isArray(sessionData.cookies)).toBe(true);
-
-      // Check that cookies have required fields
-      if (sessionData.cookies.length > 0) {
-        const cookie = sessionData.cookies[0];
-        expect(cookie).toHaveProperty('name');
-        expect(cookie).toHaveProperty('value');
-        expect(cookie).toHaveProperty('domain');
-        expect(cookie).toHaveProperty('path');
-      }
-
-      // Check origins (localStorage)
-      expect(sessionData.origins).toBeDefined();
-      expect(Array.isArray(sessionData.origins)).toBe(true);
-    }
   });
 
   test('preValidateSession should detect missing session file', async () => {
