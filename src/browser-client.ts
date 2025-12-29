@@ -3,6 +3,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page, BrowserContext, BrowserContextOptions } from 'playwright';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { logger } from './logger';
 
 // Enable stealth plugin to bypass bot detection (Cloudflare, etc.)
 playwrightChromium.use(StealthPlugin());
@@ -87,15 +88,6 @@ export class BrowserMediumClient {
   private sessionPath = join(__dirname, '..', 'medium-session.json');
   private isAuthenticatedSession: boolean = false;
 
-  /**
-   * Check if running in test environment to suppress noisy diagnostics
-   */
-  private isTestEnvironment(): boolean {
-    return process.env.NODE_ENV === 'test' ||
-           process.env.JEST_WORKER_ID !== undefined ||
-           process.env.PLAYWRIGHT_TEST !== undefined;
-  }
-
   // Configuration constants
   private static readonly TIMEOUTS = {
     LOGIN: 300_000,           // 5 minutes - user login interaction
@@ -151,16 +143,14 @@ export class BrowserMediumClient {
     const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
 
     // Diagnostic logging (suppressed in test environment)
-    if (!this.isTestEnvironment()) {
-      console.error('═══════════════════════════════════════');
-      console.error('🔧 INITIALIZE DIAGNOSTICS');
-      console.error(`   Working directory: ${process.cwd()}`);
-      console.error(`   Session path: ${this.sessionPath}`);
-      console.error(`   Session file exists: ${existsSync(this.sessionPath)}`);
-      console.error(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
-      console.error(`   Headless mode: ${headlessMode}`);
-      console.error('═══════════════════════════════════════\n');
-    }
+    logger.debug('═══════════════════════════════════════');
+    logger.debug('🔧 INITIALIZE DIAGNOSTICS');
+    logger.debug(`   Working directory: ${process.cwd()}`);
+    logger.debug(`   Session path: ${this.sessionPath}`);
+    logger.debug(`   Session file exists: ${existsSync(this.sessionPath)}`);
+    logger.debug(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
+    logger.debug(`   Headless mode: ${headlessMode}`);
+    logger.debug('═══════════════════════════════════════\n');
 
     this.browser = await playwrightChromium.launch({
       headless: headlessMode, // Dynamic: visible for initial login, headless after
@@ -177,13 +167,11 @@ export class BrowserMediumClient {
       ]
     });
 
-    // Log session loading result (suppressed in test environment)
-    if (!this.isTestEnvironment()) {
-      if (this.isAuthenticatedSession) {
-        console.error('✅ Loaded valid session from file');
-      } else if (existsSync(this.sessionPath)) {
-        console.error('⚠️  Session file has expired cookies, will re-authenticate');
-      }
+    // Log session loading result
+    if (this.isAuthenticatedSession) {
+      logger.info('✅ Loaded valid session from file');
+    } else if (existsSync(this.sessionPath)) {
+      logger.warn('⚠️  Session file has expired cookies, will re-authenticate');
     }
 
     this.context = await this.browser.newContext(contextOptions);
@@ -213,7 +201,7 @@ export class BrowserMediumClient {
       throw new Error('Browser not initialized');
     }
 
-    console.error('🌐 Navigating to login page to check session...');
+    logger.debug('🌐 Navigating to login page to check session...');
     await this.page.goto('https://medium.com/m/signin');
     await this.page.waitForLoadState('networkidle');
 
@@ -221,7 +209,7 @@ export class BrowserMediumClient {
     const currentUrl = this.page.url();
     if (!currentUrl.includes('/m/signin')) {
       // We got redirected away from login page - we're logged in!
-      console.error(`✅ Already logged in (redirected to ${currentUrl})`);
+      logger.trace(`✅ Already logged in (redirected to ${currentUrl})`);
       return true;
     }
 
@@ -235,7 +223,7 @@ export class BrowserMediumClient {
   private async detectLoginIndicators(): Promise<boolean> {
     if (!this.page) return false;
 
-    console.error('🔍 On signin page, checking if already logged in...');
+    logger.debug('🔍 On signin page, checking if already logged in...');
 
     // Wait a moment for any dynamic content to load
     await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
@@ -250,7 +238,7 @@ export class BrowserMediumClient {
     for (const selector of loginIndicators) {
       try {
         await this.page.waitForSelector(selector, { timeout: BrowserMediumClient.TIMEOUTS.SHORT_WAIT });
-        console.error(`✅ Already logged in (found ${selector} on signin page)`);
+        logger.info(`✅ Already logged in (found ${selector} on signin page)`);
         return true;
       } catch {
         // Try next selector
@@ -267,18 +255,18 @@ export class BrowserMediumClient {
   private async waitForUserLogin(): Promise<boolean> {
     if (!this.page) return false;
 
-    console.error('⏳ Waiting for you to complete login in the browser...');
-    console.error('');
-    console.error('🔐 LOGIN INSTRUCTIONS:');
-    console.error('   1. In the opened browser, choose "Sign in with email"');
-    console.error('   2. Use your Medium email/password (avoid Google login if possible)');
-    console.error('   3. If you must use Google login:');
-    console.error('      - Try clicking "Sign in with Google"');
-    console.error('      - If blocked, manually navigate to medium.com in a regular browser');
-    console.error('      - Login there first, then come back to this automated browser');
-    console.error('   4. Complete any 2FA if prompted');
-    console.error('   5. The script will continue automatically once logged in...');
-    console.error('');
+    logger.info('⏳ Waiting for you to complete login in the browser...');
+    logger.info('');
+    logger.info('🔐 LOGIN INSTRUCTIONS:');
+    logger.info('   1. In the opened browser, choose "Sign in with email"');
+    logger.info('   2. Use your Medium email/password (avoid Google login if possible)');
+    logger.info('   3. If you must use Google login:');
+    logger.info('      - Try clicking "Sign in with Google"');
+    logger.info('      - If blocked, manually navigate to medium.com in a regular browser');
+    logger.info('      - Login there first, then come back to this automated browser');
+    logger.info('   4. Complete any 2FA if prompted');
+    logger.info('   5. The script will continue automatically once logged in...');
+    logger.info('');
 
     // Wait for successful login (user button appears)
     try {
@@ -286,10 +274,10 @@ export class BrowserMediumClient {
         '[data-testid="headerUserIcon"], [data-testid="headerWriteButton"], button[aria-label*="user"]',
         { timeout: BrowserMediumClient.TIMEOUTS.LOGIN }
       );
-      console.error('✅ Login successful!');
+      logger.info('✅ Login successful!');
       return true;
     } catch (error) {
-      console.error('❌ Login timeout. Please try again.');
+      logger.warn('❌ Login timeout. Please try again.');
       return false;
     }
   }
@@ -305,9 +293,9 @@ export class BrowserMediumClient {
     // Check if we have a saved session
     const hasSession = existsSync(this.sessionPath);
     if (hasSession) {
-      console.error('💾 Found existing session file, checking if still valid...');
+      logger.debug('💾 Found existing session file, checking if still valid...');
     } else {
-      console.error('🔐 No session file found, need to login');
+      logger.warn('🔐 No session file found, need to login');
     }
 
     // Quick check via redirect
@@ -330,14 +318,14 @@ export class BrowserMediumClient {
       const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(0, 10).map(el => el.getAttribute('data-testid'));
       return { buttons, testIds, title: document.title, url: window.location.href };
     });
-    console.error('📄 Page info:', JSON.stringify(pageInfo, null, 2));
+    logger.warn('📄 Page info:', JSON.stringify(pageInfo, null, 2));
 
     // Not logged in - need to restart browser in non-headless mode for user login
-    console.error('⏳ Not logged in, waiting for authentication...');
+    logger.info('⏳ Not logged in, waiting for authentication...');
 
     if (this.isAuthenticatedSession && this.browser) {
       // We're in headless mode but need user login - restart browser in visible mode
-      console.error('⚠️  Browser in headless mode but login required - restarting in visible mode...');
+      logger.warn('⚠️  Browser in headless mode but login required - restarting in visible mode...');
       await this.close();
       await this.initialize(false); // Force non-headless
       await this.page!.goto('https://medium.com/m/signin');
@@ -366,44 +354,40 @@ export class BrowserMediumClient {
       // Note: IndexedDB capture support may vary by Playwright version
       const sessionData = await this.context.storageState();
 
-      // Diagnostic logging (suppressed in test environment)
-      if (!this.isTestEnvironment()) {
-        console.error('═══════════════════════════════════════');
-        console.error('💾 SAVING SESSION');
-        console.error(`   Path: ${this.sessionPath}`);
-        console.error(`   Working dir: ${process.cwd()}`);
-      }
+      // Diagnostic logging
+      logger.debug('═══════════════════════════════════════');
+      logger.debug('💾 SAVING SESSION');
+      logger.debug(`   Path: ${this.sessionPath}`);
+      logger.debug(`   Working dir: ${process.cwd()}`);
 
       writeFileSync(this.sessionPath, JSON.stringify(sessionData, null, 2));
       this.isAuthenticatedSession = true;
 
-      // Verify file was written (suppressed in test environment)
-      if (!this.isTestEnvironment()) {
-        const fileExists = existsSync(this.sessionPath);
-        console.error(`   File written: ${fileExists ? '✅ YES' : '❌ NO'}`);
-        if (fileExists) {
-          const fs = require('fs');
-          const stats = fs.statSync(this.sessionPath);
-          console.error(`   File size: ${stats.size} bytes`);
-        }
-        console.error('═══════════════════════════════════════\n');
+      // Verify file was written
+      const fileExists = existsSync(this.sessionPath);
+      logger.debug(`   File written: ${fileExists ? '✅ YES' : '❌ NO'}`);
+      if (fileExists) {
+        const fs = require('fs');
+        const stats = fs.statSync(this.sessionPath);
+        logger.debug(`   File size: ${stats.size} bytes`);
+      }
+      logger.debug('═══════════════════════════════════════\n');
 
-        console.error('💾 Session saved for future use');
+      logger.info('💾 Session saved for future use');
 
-        // Debug logging: show cookie expiry information
-        const earliestExpiry = this.getEarliestCookieExpiry(sessionData);
-        if (earliestExpiry) {
-          const expiryDate = new Date(earliestExpiry * 1000);
-          console.error(`📅 Session valid until: ${expiryDate.toISOString()}`);
-        }
-
-        const cookieCount = sessionData.cookies?.length || 0;
-        const originsCount = sessionData.origins?.length || 0;
-        console.error(`📊 Saved ${cookieCount} cookies and ${originsCount} localStorage origins`);
+      // Debug logging: show cookie expiry information
+      const earliestExpiry = this.getEarliestCookieExpiry(sessionData);
+      if (earliestExpiry) {
+        const expiryDate = new Date(earliestExpiry * 1000);
+        logger.debug(`📅 Session valid until: ${expiryDate.toISOString()}`);
       }
 
+      const cookieCount = sessionData.cookies?.length || 0;
+      const originsCount = sessionData.origins?.length || 0;
+      logger.debug(`📊 Saved ${cookieCount} cookies and ${originsCount} localStorage origins`);
+
     } catch (error) {
-      console.error('❌ Failed to save session:', error);
+      logger.error('❌ Failed to save session:', error);
       this.isAuthenticatedSession = false;
     }
   }
@@ -553,9 +537,7 @@ export class BrowserMediumClient {
     await this.ensureLoggedIn();
 
     // Navigate to main stories page
-    if (!this.isTestEnvironment()) {
-      console.error('📚 Fetching all user articles from all tabs...');
-    }
+    logger.info('📚 Fetching all user articles from all tabs...');
     await this.page.goto('https://medium.com/me/stories', {
       waitUntil: 'domcontentloaded',
       timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
@@ -564,7 +546,7 @@ export class BrowserMediumClient {
 
     // Parse tab names to find which tabs have articles
     const tabsWithCounts = await this.parseArticleTabs();
-    console.error(`Found tabs: ${tabsWithCounts.map(t => `${t.name}(${t.count})`).join(', ')}`);
+    logger.debug(`Found tabs: ${tabsWithCounts.map(t => `${t.name}(${t.count})`).join(', ')}`);
 
     // Collect all articles from all tabs
     const allArticles: MediumArticle[] = [];
@@ -572,11 +554,11 @@ export class BrowserMediumClient {
     // Scrape each tab that has articles
     for (const tab of tabsWithCounts) {
       if (tab.count === 0) {
-        console.error(`⏭️  Skipping ${tab.name} (0 articles)`);
+        logger.debug(`⏭️  Skipping ${tab.name} (0 articles)`);
         continue;
       }
 
-      console.error(`\n📑 Fetching from ${tab.name} tab (${tab.count} articles)...`);
+      logger.info(`\n📑 Fetching from ${tab.name} tab (${tab.count} articles)...`);
 
       try {
         // Click the tab
@@ -588,7 +570,7 @@ export class BrowserMediumClient {
 
         // Wait for network to be idle
         await this.page.waitForLoadState('networkidle', { timeout: BrowserMediumClient.TIMEOUTS.NETWORK_IDLE }).catch(() => {
-          console.error('  ⚠️  Network idle timeout, continuing anyway...');
+          logger.warn('  ⚠️  Network idle timeout, continuing anyway...');
         });
 
         // Additional wait for DOM updates
@@ -598,51 +580,47 @@ export class BrowserMediumClient {
         const status = this.mapTabToStatus(tab.name);
         const tabArticles = await this.extractArticlesFromTable(status as string);
 
-        if (!this.isTestEnvironment()) {
-          console.error(`  ✅ Found ${tabArticles.length} article(s)`);
-          tabArticles.forEach((article: MediumArticle) => {
-            console.error(`     - "${article.title}"`);
-          });
-        }
+        logger.trace(`  ✅ Found ${tabArticles.length} article(s)`);
+        tabArticles.forEach((article: MediumArticle) => {
+          logger.trace(`     - "${article.title}"`);
+        });
 
         allArticles.push(...tabArticles);
 
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`  ❌ Error fetching ${tab.name}: ${message}`);
+        logger.error(`  ❌ Error fetching ${tab.name}: ${message}`);
       }
     }
 
-    console.error(`\n✅ Total articles collected: ${allArticles.length}`);
+    logger.info(`\n✅ Total articles collected: ${allArticles.length}`);
     return allArticles;
   }
 
   async getArticleContent(url: string, requireLogin: boolean = true): Promise<string> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    if (!this.isTestEnvironment()) {
-      console.error(`📖 Fetching article content from: ${url}`);
-    }
+    logger.info(`📖 Fetching article content from: ${url}`);
 
     // Trust that session was already validated during initialization
     // If session exists, assume we're logged in (validated by validateSessionFast earlier)
     let isLoggedIn = this.isAuthenticatedSession;
 
     if (isLoggedIn) {
-      console.error('✅ Using authenticated session for full content access');
+      logger.info('✅ Using authenticated session for full content access');
     } else if (requireLogin) {
-      console.error('🔐 No authenticated session. Attempting login for full content access...');
+      logger.info('🔐 No authenticated session. Attempting login for full content access...');
       isLoggedIn = await this.ensureLoggedIn();
     } else {
-      console.error('🔓 No login required. Will get preview content only.');
+      logger.info('🔓 No login required. Will get preview content only.');
     }
 
     if (!isLoggedIn && requireLogin) {
-      console.error('⚠️  Warning: Login failed. You may only get partial content (preview).');
+      logger.warn('⚠️  Warning: Login failed. You may only get partial content (preview).');
     }
-    
+
     try {
-      console.error(`🌐 Navigating to article: ${url}`);
+      logger.debug(`🌐 Navigating to article: ${url}`);
       // Use 'domcontentloaded' instead of 'networkidle' - more reliable for heavy pages
       // with lots of tracking/analytics that may never reach networkidle
       await this.page.goto(url, {
@@ -652,8 +630,8 @@ export class BrowserMediumClient {
 
       // Wait a bit for dynamic content to load
       await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.CONTENT_WAIT);
-      
-      console.error('📄 Page loaded, extracting content...');
+
+      logger.debug('📄 Page loaded, extracting content...');
 
       // Extract article content with multiple strategies
       const content = await this.page.evaluate(() => {
@@ -804,11 +782,11 @@ export class BrowserMediumClient {
         return extractedContent;
       });
 
-      console.error(`✅ Content extraction completed. Length: ${content.length} characters`);
+      logger.debug(`✅ Content extraction completed. Length: ${content.length} characters`);
       return content;
-      
+
     } catch (error) {
-      console.error('❌ Error fetching article content:', error);
+      logger.error('❌ Error fetching article content:', error);
       throw new Error(`Failed to fetch article content: ${error}`);
     }
   }
@@ -893,22 +871,22 @@ export class BrowserMediumClient {
 
   async searchMediumArticles(keywords: string[]): Promise<MediumArticle[]> {
     if (!this.page) throw new Error('Browser not initialized');
-    
+
     const searchQuery = keywords.join(' ');
-    console.error(`🔍 Searching Medium for: "${searchQuery}"`);
-    
+    logger.info(`🔍 Searching Medium for: "${searchQuery}"`);
+
     // Try to use saved session if available (but don't force login for search)
     if (existsSync(this.sessionPath)) {
-      console.error('💾 Using saved session for search...');
+      logger.debug('💾 Using saved session for search...');
     }
-    
+
     await this.page.goto(`https://medium.com/search?q=${encodeURIComponent(searchQuery)}`);
     await this.page.waitForLoadState('networkidle');
 
     // Wait a bit more for dynamic content to load
     await this.page.waitForTimeout(BrowserMediumClient.TIMEOUTS.SHORT_WAIT);
 
-    console.error('📄 Current page URL:', this.page.url());
+    logger.debug('📄 Current page URL:', this.page.url());
 
     const articles = await this.page.evaluate((searchQuery) => {
       // Remove console.log from browser context to avoid JSON interference
@@ -1140,9 +1118,7 @@ export class BrowserMediumClient {
       return articles;
     }, searchQuery);
 
-    if (!this.isTestEnvironment()) {
-      console.error(`🎉 Search completed. Found ${articles.length} articles`);
-    }
+    logger.info(`🎉 Search completed. Found ${articles.length} articles`);
     return articles;
   }
 
@@ -1176,13 +1152,13 @@ export class BrowserMediumClient {
 
         // Check if cookie is expired
         if (cookie.expires < now) {
-          console.error(`❌ Critical auth cookie expired: ${cookie.name} (expired ${new Date(cookie.expires * 1000).toISOString()})`);
+          logger.warn(`❌ Critical auth cookie expired: ${cookie.name} (expired ${new Date(cookie.expires * 1000).toISOString()})`);
           return false;
         }
       }
     }
 
-    console.error('✅ All authentication cookies are valid');
+    logger.info('✅ All authentication cookies are valid');
     return true;
   }
 
@@ -1221,12 +1197,12 @@ export class BrowserMediumClient {
    */
   async validateSessionFast(): Promise<boolean> {
     if (!this.page) {
-      console.error('⚠️  Cannot validate session: browser not initialized');
+      logger.warn('⚠️  Cannot validate session: browser not initialized');
       return false;
     }
 
     try {
-      console.error('🔍 Validating session...');
+      logger.debug('🔍 Validating session...');
 
       // Navigate to lightweight Medium endpoint
       const response = await this.page.goto('https://medium.com/me', {
@@ -1237,20 +1213,20 @@ export class BrowserMediumClient {
       // Check if redirected to login page
       const currentUrl = this.page.url();
       if (currentUrl.includes('/m/signin') || currentUrl.includes('login')) {
-        console.error('❌ Session invalid: redirected to login page');
+        logger.warn('❌ Session invalid: redirected to login page');
         return false;
       }
 
       // Check response status
       if (response && (response.status() === 401 || response.status() === 403)) {
-        console.error('❌ Session invalid: received auth error status');
+        logger.warn('❌ Session invalid: received auth error status');
         return false;
       }
 
-      console.error('✅ Session validated successfully (fast check)');
+      logger.info('✅ Session validated successfully (fast check)');
       return true;
     } catch (error) {
-      console.error('⚠️  Session validation failed:', error);
+      logger.warn('⚠️  Session validation failed:', error);
       return false;
     }
   }
@@ -1262,7 +1238,7 @@ export class BrowserMediumClient {
    */
   async preValidateSession(): Promise<boolean> {
     if (!existsSync(this.sessionPath)) {
-      console.error('❌ No session file found');
+      logger.warn('❌ No session file found');
       return false;
     }
 
@@ -1270,7 +1246,7 @@ export class BrowserMediumClient {
       const sessionData = JSON.parse(readFileSync(this.sessionPath, 'utf8'));
       return this.validateStorageState(sessionData);
     } catch (error) {
-      console.error('❌ Session file corrupted:', error);
+      logger.error('❌ Session file corrupted:', error);
       return false;
     }
   }
@@ -1524,38 +1500,30 @@ export class BrowserMediumClient {
   async getFeed(category: FeedCategory, limit: number = 10): Promise<MediumFeedArticle[]> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    if (!this.isTestEnvironment()) {
-      console.error(`📰 Fetching ${category} feed (limit: ${limit})...`);
-    }
+    logger.info(`📰 Fetching ${category} feed (limit: ${limit})...`);
 
     // Handle 'all' category by fetching from all feeds
     if (category === 'all') {
-      if (!this.isTestEnvironment()) {
-        console.error('  📚 Fetching from all feeds...');
-      }
+      logger.info('  📚 Fetching from all feeds...');
       const categories: Array<'featured' | 'for-you' | 'following'> = ['featured', 'for-you', 'following'];
       const allArticles: MediumFeedArticle[] = [];
 
       for (const cat of categories) {
         try {
-          if (!this.isTestEnvironment()) {
-            console.error(`  📰 Fetching ${cat} feed...`);
-          }
+          logger.debug(`  📰 Fetching ${cat} feed...`);
           const articles = await this.getFeed(cat, limit);
           // Tag each article with its source feed
           articles.forEach(article => article.feedCategory = cat);
           allArticles.push(...articles);
-          if (!this.isTestEnvironment()) {
-            console.error(`  ✅ Got ${articles.length} article(s) from ${cat}`);
-          }
+          logger.debug(`  ✅ Got ${articles.length} article(s) from ${cat}`);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          console.error(`  ⚠️  Failed to fetch ${cat} feed: ${message}`);
+          logger.warn(`  ⚠️  Failed to fetch ${cat} feed: ${message}`);
           // Continue with other feeds even if one fails
         }
       }
 
-      console.error(`  ✅ Total: ${allArticles.length} article(s) from all feeds`);
+      logger.info(`  ✅ Total: ${allArticles.length} article(s) from all feeds`);
       return allArticles;
     }
 
@@ -1593,22 +1561,22 @@ export class BrowserMediumClient {
     // Click tab if needed (Featured/For You on homepage)
     if (needsTabClick) {
       try {
-        console.error(`  🔍 Clicking ${category} tab...`);
+        logger.debug(`  🔍 Clicking ${category} tab...`);
         const tab = this.page.locator(tabSelector).first();
         await tab.click();
         await this.page.waitForLoadState('networkidle', { timeout: BrowserMediumClient.TIMEOUTS.NETWORK_IDLE }).catch(() => {
-          console.error('  ⚠️  Network idle timeout, continuing...');
+          logger.warn('  ⚠️  Network idle timeout, continuing...');
         });
         await this.page.waitForTimeout(1500);
       } catch (error) {
-        console.error(`  ⚠️  Failed to click tab, proceeding with default view: ${error}`);
+        logger.warn(`  ⚠️  Failed to click tab, proceeding with default view: ${error}`);
       }
     }
 
     // Extract article cards from feed using shared method
     const articles = await this.extractArticleCards(limit);
 
-    console.error(`  ✅ Extracted ${articles.length} article(s) from ${category} feed`);
+    logger.debug(`  ✅ Extracted ${articles.length} article(s) from ${category} feed`);
     return articles;
   }
 
@@ -1621,9 +1589,7 @@ export class BrowserMediumClient {
 
     await this.ensureLoggedIn(); // Lists require authentication
 
-    if (!this.isTestEnvironment()) {
-      console.error('📚 Fetching user reading lists...');
-    }
+    logger.info('📚 Fetching user reading lists...');
 
     // Navigate to lists page
     await this.page.goto('https://medium.com/me/lists', {
@@ -1754,9 +1720,7 @@ export class BrowserMediumClient {
       return mediumLists;
     });
 
-    if (!this.isTestEnvironment()) {
-      console.error(`  ✅ Found ${lists.length} reading list(s)`);
-    }
+    logger.info(`  ✅ Found ${lists.length} reading list(s)`);
     return lists;
   }
 
@@ -1771,7 +1735,7 @@ export class BrowserMediumClient {
 
     await this.ensureLoggedIn(); // Lists require authentication
 
-    console.error(`📋 Fetching articles from list ${listId} (limit: ${limit})...`);
+    logger.info(`📋 Fetching articles from list ${listId} (limit: ${limit})...`);
 
     // First, navigate to /me/lists to find the full URL for this list
     // (List URLs require username: /@username/list/list-id, not /me/list/list-id)
@@ -1799,7 +1763,7 @@ export class BrowserMediumClient {
       throw new Error(`List not found: ${listId}`);
     }
 
-    console.error(`  Found list URL: ${listUrl}`);
+    logger.debug(`  Found list URL: ${listUrl}`);
 
     // Navigate to the list page using the full URL
     await this.page.goto(listUrl, {
@@ -1823,7 +1787,7 @@ export class BrowserMediumClient {
     // Extract articles from list using shared method
     const articles = await this.extractArticleCards(limit);
 
-    console.error(`  ✅ Extracted ${articles.length} article(s) from list`);
+    logger.debug(`  ✅ Extracted ${articles.length} article(s) from list`);
     return articles;
   }
 
