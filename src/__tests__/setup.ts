@@ -50,5 +50,3 @@ jest.mock('playwright-extra', () => {
     chromium: mockChromium
   };
 });
-
-console.error('✅ Global playwright-extra mock loaded');
