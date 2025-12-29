@@ -26,7 +26,7 @@ test.describe('getArticleContent() E2E', () => {
 
     // Use a well-known, stable public Medium article
     // This article is from Medium's official blog and unlikely to be deleted
-    const articleUrl = 'https://medium.com/@ev/is-medium-a-publishing-platform-or-a-publisher-1d3d6c6e3d3e';
+    const articleUrl = 'https://blog.medium.com/welcome-to-medium-9e53ca408c48';
 
     const content = await client.getArticleContent(articleUrl, false);
 
@@ -44,7 +44,7 @@ test.describe('getArticleContent() E2E', () => {
   test('should extract multi-paragraph content correctly', async () => {
     await client.initialize();
 
-    const articleUrl = 'https://medium.com/@ev/is-medium-a-publishing-platform-or-a-publisher-1d3d6c6e3d3e';
+    const articleUrl = 'https://blog.medium.com/welcome-to-medium-9e53ca408c48';
 
     const content = await client.getArticleContent(articleUrl, false);
 
@@ -61,7 +61,7 @@ test.describe('getArticleContent() E2E', () => {
     await client.initialize();
 
     // Test with requireLogin flag (may trigger login if session invalid)
-    const articleUrl = 'https://medium.com/@ev/is-medium-a-publishing-platform-or-a-publisher-1d3d6c6e3d3e';
+    const articleUrl = 'https://blog.medium.com/welcome-to-medium-9e53ca408c48';
 
     // Should not throw, even if login fails
     await expect(
@@ -118,7 +118,7 @@ test.describe('getArticleContent() E2E', () => {
 
     await client.initialize();
 
-    const articleUrl = 'https://medium.com/@ev/is-medium-a-publishing-platform-or-a-publisher-1d3d6c6e3d3e';
+    const articleUrl = 'https://blog.medium.com/welcome-to-medium-9e53ca408c48';
     await client.getArticleContent(articleUrl, false);
 
     const duration = Date.now() - startTime;
@@ -132,7 +132,7 @@ test.describe('getArticleContent() E2E', () => {
   test('should work without login when requireLogin=false', async () => {
     await client.initialize();
 
-    const publicUrl = 'https://medium.com/@ev/is-medium-a-publishing-platform-or-a-publisher-1d3d6c6e3d3e';
+    const publicUrl = 'https://blog.medium.com/welcome-to-medium-9e53ca408c48';
 
     // Should fetch content without attempting login
     const content = await client.getArticleContent(publicUrl, false);
