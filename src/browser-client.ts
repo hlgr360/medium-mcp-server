@@ -85,8 +85,13 @@ export class BrowserMediumClient {
   private page: Page | null = null;
   // Use __dirname to get the script's directory, then go up to project root
   // This ensures session file is in project directory, not working directory
-  private sessionPath = join(__dirname, '..', 'medium-session.json');
+  private sessionPath: string;
   private isAuthenticatedSession: boolean = false;
+
+  constructor(sessionPath?: string) {
+    // Allow custom session path for testing, default to main session file
+    this.sessionPath = sessionPath || join(__dirname, '..', 'medium-session.json');
+  }
 
   // Configuration constants
   private static readonly TIMEOUTS = {

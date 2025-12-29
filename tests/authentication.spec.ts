@@ -5,27 +5,29 @@ import { join } from 'path';
 
 /**
  * Test suite for authentication and session validation
+ *
+ * NOTE: Tests that need fake sessions use medium-session.test.json (separate file).
+ * Tests that work with real sessions use the main medium-session.json.
  */
 test.describe('Authentication', () => {
-  const sessionPath = join(__dirname, '..', 'medium-session.json');
+  const testSessionPath = join(__dirname, '..', 'medium-session.test.json');
   let client: BrowserMediumClient;
 
   test.beforeEach(() => {
+    // Use default client (main session) unless test needs custom session
     client = new BrowserMediumClient();
-    if (existsSync(sessionPath)) {
-      unlinkSync(sessionPath);
-    }
   });
 
   test.afterEach(async () => {
     await client.close();
-    if (existsSync(sessionPath)) {
-      unlinkSync(sessionPath);
+    // Clean up test session file if it was created
+    if (existsSync(testSessionPath)) {
+      unlinkSync(testSessionPath);
     }
   });
 
   test('validateSessionFast should complete within timeout', async () => {
-    // Create a valid session (though it won't actually authenticate)
+    // Create a valid test session (though it won't actually authenticate)
     const validSession = {
       cookies: [
         {
@@ -42,17 +44,21 @@ test.describe('Authentication', () => {
       origins: []
     };
 
-    writeFileSync(sessionPath, JSON.stringify(validSession, null, 2));
+    writeFileSync(testSessionPath, JSON.stringify(validSession, null, 2));
 
-    await client.initialize();
+    // Use client with test session
+    const testClient = new BrowserMediumClient(testSessionPath);
+    await testClient.initialize();
 
     // Measure validation time
     const startTime = Date.now();
-    await client.validateSessionFast();
+    await testClient.validateSessionFast();
     const duration = Date.now() - startTime;
 
     // Should complete in less than 15 seconds (much faster than 21s DOM selector method)
     expect(duration).toBeLessThan(15000);
+
+    await testClient.close();
   });
 
   test('validateSessionFast should detect invalid session', async () => {

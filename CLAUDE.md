@@ -244,6 +244,43 @@ tests/                  # Fixture-based & E2E (67 tests)
 
 **Why Not 80%+**: DOM selector strategies have 100+ fallback branches; testing mocked selectors provides little value. E2E tests validate UI automation better.
 
+#### Test Session Setup
+
+**Automated One-Time Login** (via `globalSetup`):
+
+Playwright automatically runs `scripts/setup-test-session.ts` before all tests to ensure a valid Medium session exists:
+
+1. **First run** (no session file):
+   - Opens browser visibly for manual login
+   - User logs in to Medium (5-minute timeout)
+   - Session saved to `medium-session.json`
+   - All subsequent test runs are headless
+
+2. **Subsequent runs** (valid session exists):
+   - Validates existing session (cookie expiry check)
+   - Skips login prompt entirely
+   - All tests run headless immediately
+
+3. **Expired session**:
+   - Detects expired cookies
+   - Opens browser for re-login
+   - Updates session file
+
+**Session File Management**:
+- **Main session**: `medium-session.json` (used by most tests, persisted across runs)
+- **Test sessions**: `medium-session.test.json` (used by session-management tests, cleaned up after each test)
+
+**Why This Approach**:
+- ✅ No needless browser popups during regular test runs
+- ✅ Full test coverage maintained (not disabled)
+- ✅ Session automatically reused across test runs
+- ✅ One-time setup, then always headless
+- ✅ Test-specific session files don't interfere with main session
+
+**Skipped Tests** (only tests that specifically require visible browser):
+- `browser-lifecycle.spec.ts` - "should use non-headless mode when forced" (run with `HEADED_MODE_TEST=true`)
+- `authentication.spec.ts` - "ensureLoggedIn should handle timeout gracefully" (requires 5+ min manual interaction)
+
 #### Fixture-Based Testing (NEW)
 
 **Benefits**:

@@ -5,60 +5,35 @@ import { join } from 'path';
 
 /**
  * Test suite for session persistence functionality
+ *
+ * NOTE: Uses medium-session.test.json (separate from main session file)
+ * to test session management in isolation without affecting the main
+ * session used by other tests.
  */
 test.describe('Session Management', () => {
-  const sessionPath = join(__dirname, '..', 'medium-session.json');
-  const sessionBackupPath = join(__dirname, '..', 'medium-session.backup.json');
-  const sessionTempPath = join(__dirname, '..', 'medium-session.temp.json');
+  const sessionPath = join(__dirname, '..', 'medium-session.test.json');
   let client: BrowserMediumClient;
-  let lastValidSession: string | null = null;
 
-  // Save existing session before running session management tests
-  test.beforeAll(() => {
-    if (existsSync(sessionPath)) {
-      const sessionData = readFileSync(sessionPath, 'utf8');
-      writeFileSync(sessionBackupPath, sessionData);
-      console.log('💾 Saved existing session to backup');
-    }
-  });
-
-  // Restore session after all session management tests complete
+  // Clean up test session file after all tests complete
   test.afterAll(() => {
-    // First, check if we have a backup to restore
-    if (existsSync(sessionBackupPath)) {
-      const sessionData = readFileSync(sessionBackupPath, 'utf8');
-      writeFileSync(sessionPath, sessionData);
-      unlinkSync(sessionBackupPath);
-      console.log('✅ Restored session from backup');
-    } else if (lastValidSession) {
-      // No backup but we have a valid session from tests - keep it
-      writeFileSync(sessionPath, lastValidSession);
-      console.log('✅ Kept valid session created during tests');
-    } else {
-      console.log('ℹ️  No session to restore (started without valid session)');
-    }
-  });
-
-  test.beforeEach(() => {
-    client = new BrowserMediumClient();
-    // Clean up any existing session file before each test
     if (existsSync(sessionPath)) {
       unlinkSync(sessionPath);
     }
   });
 
-  test.afterEach(async ({ }, testInfo) => {
+  test.beforeEach(() => {
+    // Use custom test session path to avoid affecting main session
+    client = new BrowserMediumClient(sessionPath);
+    // Clean up any existing test session file before each test
+    if (existsSync(sessionPath)) {
+      unlinkSync(sessionPath);
+    }
+  });
+
+  test.afterEach(async () => {
     await client.close();
 
-    // Save any valid session created by the login test
-    const isLoginTest = testInfo.title.includes('should create session file with cookies and origins after successful login');
-
-    if (isLoginTest && testInfo.status === 'passed' && existsSync(sessionPath)) {
-      lastValidSession = readFileSync(sessionPath, 'utf8');
-      console.log('💾 Saved session from successful login test');
-    }
-
-    // Clean up session file after each test
+    // Clean up test session file after each test
     if (existsSync(sessionPath)) {
       unlinkSync(sessionPath);
     }

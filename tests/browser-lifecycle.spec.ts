@@ -6,24 +6,21 @@ import { join } from 'path';
 /**
  * Test suite for browser lifecycle management
  * Verifies that browser is properly initialized and closed
+ *
+ * NOTE: Uses main session file (medium-session.json) to test real-world behavior.
+ * Does NOT clean up session between tests to allow session reuse.
  */
 test.describe('Browser Lifecycle', () => {
-  const sessionPath = join(__dirname, '..', 'medium-session.json');
   let client: BrowserMediumClient;
 
   test.beforeEach(() => {
     client = new BrowserMediumClient();
-    // Clean up session file before each test
-    if (existsSync(sessionPath)) {
-      unlinkSync(sessionPath);
-    }
+    // Do NOT clean up session file - use existing session if available
   });
 
   test.afterEach(async () => {
     await client.close();
-    if (existsSync(sessionPath)) {
-      unlinkSync(sessionPath);
-    }
+    // Do NOT delete session file - preserve for subsequent test runs
   });
 
   test('should initialize browser successfully', async () => {
@@ -36,26 +33,10 @@ test.describe('Browser Lifecycle', () => {
   });
 
   test('should use headless mode when valid session exists', async () => {
-    // Create a valid session file
-    const validSession = {
-      cookies: [
-        {
-          name: 'sid',
-          value: 'test-value',
-          domain: 'medium.com',
-          path: '/',
-          expires: Date.now() / 1000 + (365 * 24 * 60 * 60), // 1 year
-          httpOnly: true,
-          secure: true,
-          sameSite: 'Lax' as const
-        }
-      ],
-      origins: []
-    };
+    // This test relies on the global setup creating a valid session
+    // If session exists (from globalSetup), initialize should use headless mode
 
-    writeFileSync(sessionPath, JSON.stringify(validSession, null, 2));
-
-    // Initialize should use headless mode with valid session
+    // Initialize should use headless mode with existing session
     await client.initialize();
 
     // Can't directly test headless mode, but we can verify browser initialized

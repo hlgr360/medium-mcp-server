@@ -10,6 +10,9 @@ export default defineConfig({
   // Only run E2E tests (*.spec.ts), exclude Jest integration tests (*.test.ts)
   testMatch: '**/*.spec.ts',
 
+  // Global setup: Ensure valid session exists before running tests
+  globalSetup: './scripts/setup-test-session.ts',
+
   // Maximum time one test can run
   timeout: 60000, // 60 seconds per test
 
