@@ -87,6 +87,15 @@ export class BrowserMediumClient {
   private sessionPath = join(__dirname, '..', 'medium-session.json');
   private isAuthenticatedSession: boolean = false;
 
+  /**
+   * Check if running in test environment to suppress noisy diagnostics
+   */
+  private isTestEnvironment(): boolean {
+    return process.env.NODE_ENV === 'test' ||
+           process.env.JEST_WORKER_ID !== undefined ||
+           process.env.PLAYWRIGHT_TEST !== undefined;
+  }
+
   // Configuration constants
   private static readonly TIMEOUTS = {
     LOGIN: 300_000,           // 5 minutes - user login interaction
@@ -141,15 +150,17 @@ export class BrowserMediumClient {
     // NOW determine headless mode (after isAuthenticatedSession is set)
     const headlessMode = forceHeadless ?? this.shouldUseHeadlessMode();
 
-    // Diagnostic logging
-    console.error('═══════════════════════════════════════');
-    console.error('🔧 INITIALIZE DIAGNOSTICS');
-    console.error(`   Working directory: ${process.cwd()}`);
-    console.error(`   Session path: ${this.sessionPath}`);
-    console.error(`   Session file exists: ${existsSync(this.sessionPath)}`);
-    console.error(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
-    console.error(`   Headless mode: ${headlessMode}`);
-    console.error('═══════════════════════════════════════\n');
+    // Diagnostic logging (suppressed in test environment)
+    if (!this.isTestEnvironment()) {
+      console.error('═══════════════════════════════════════');
+      console.error('🔧 INITIALIZE DIAGNOSTICS');
+      console.error(`   Working directory: ${process.cwd()}`);
+      console.error(`   Session path: ${this.sessionPath}`);
+      console.error(`   Session file exists: ${existsSync(this.sessionPath)}`);
+      console.error(`   isAuthenticatedSession: ${this.isAuthenticatedSession}`);
+      console.error(`   Headless mode: ${headlessMode}`);
+      console.error('═══════════════════════════════════════\n');
+    }
 
     this.browser = await playwrightChromium.launch({
       headless: headlessMode, // Dynamic: visible for initial login, headless after
@@ -166,11 +177,13 @@ export class BrowserMediumClient {
       ]
     });
 
-    // Log session loading result
-    if (this.isAuthenticatedSession) {
-      console.error('✅ Loaded valid session from file');
-    } else if (existsSync(this.sessionPath)) {
-      console.error('⚠️  Session file has expired cookies, will re-authenticate');
+    // Log session loading result (suppressed in test environment)
+    if (!this.isTestEnvironment()) {
+      if (this.isAuthenticatedSession) {
+        console.error('✅ Loaded valid session from file');
+      } else if (existsSync(this.sessionPath)) {
+        console.error('⚠️  Session file has expired cookies, will re-authenticate');
+      }
     }
 
     this.context = await this.browser.newContext(contextOptions);
@@ -353,36 +366,41 @@ export class BrowserMediumClient {
       // Note: IndexedDB capture support may vary by Playwright version
       const sessionData = await this.context.storageState();
 
-      console.error('═══════════════════════════════════════');
-      console.error('💾 SAVING SESSION');
-      console.error(`   Path: ${this.sessionPath}`);
-      console.error(`   Working dir: ${process.cwd()}`);
+      // Diagnostic logging (suppressed in test environment)
+      if (!this.isTestEnvironment()) {
+        console.error('═══════════════════════════════════════');
+        console.error('💾 SAVING SESSION');
+        console.error(`   Path: ${this.sessionPath}`);
+        console.error(`   Working dir: ${process.cwd()}`);
+      }
 
       writeFileSync(this.sessionPath, JSON.stringify(sessionData, null, 2));
       this.isAuthenticatedSession = true;
 
-      // Verify file was written
-      const fileExists = existsSync(this.sessionPath);
-      console.error(`   File written: ${fileExists ? '✅ YES' : '❌ NO'}`);
-      if (fileExists) {
-        const fs = require('fs');
-        const stats = fs.statSync(this.sessionPath);
-        console.error(`   File size: ${stats.size} bytes`);
+      // Verify file was written (suppressed in test environment)
+      if (!this.isTestEnvironment()) {
+        const fileExists = existsSync(this.sessionPath);
+        console.error(`   File written: ${fileExists ? '✅ YES' : '❌ NO'}`);
+        if (fileExists) {
+          const fs = require('fs');
+          const stats = fs.statSync(this.sessionPath);
+          console.error(`   File size: ${stats.size} bytes`);
+        }
+        console.error('═══════════════════════════════════════\n');
+
+        console.error('💾 Session saved for future use');
+
+        // Debug logging: show cookie expiry information
+        const earliestExpiry = this.getEarliestCookieExpiry(sessionData);
+        if (earliestExpiry) {
+          const expiryDate = new Date(earliestExpiry * 1000);
+          console.error(`📅 Session valid until: ${expiryDate.toISOString()}`);
+        }
+
+        const cookieCount = sessionData.cookies?.length || 0;
+        const originsCount = sessionData.origins?.length || 0;
+        console.error(`📊 Saved ${cookieCount} cookies and ${originsCount} localStorage origins`);
       }
-      console.error('═══════════════════════════════════════\n');
-
-      console.error('💾 Session saved for future use');
-
-      // Debug logging: show cookie expiry information
-      const earliestExpiry = this.getEarliestCookieExpiry(sessionData);
-      if (earliestExpiry) {
-        const expiryDate = new Date(earliestExpiry * 1000);
-        console.error(`📅 Session valid until: ${expiryDate.toISOString()}`);
-      }
-
-      const cookieCount = sessionData.cookies?.length || 0;
-      const originsCount = sessionData.origins?.length || 0;
-      console.error(`📊 Saved ${cookieCount} cookies and ${originsCount} localStorage origins`);
 
     } catch (error) {
       console.error('❌ Failed to save session:', error);
@@ -535,7 +553,9 @@ export class BrowserMediumClient {
     await this.ensureLoggedIn();
 
     // Navigate to main stories page
-    console.error('📚 Fetching all user articles from all tabs...');
+    if (!this.isTestEnvironment()) {
+      console.error('📚 Fetching all user articles from all tabs...');
+    }
     await this.page.goto('https://medium.com/me/stories', {
       waitUntil: 'domcontentloaded',
       timeout: BrowserMediumClient.TIMEOUTS.PAGE_LOAD
@@ -578,10 +598,12 @@ export class BrowserMediumClient {
         const status = this.mapTabToStatus(tab.name);
         const tabArticles = await this.extractArticlesFromTable(status as string);
 
-        console.error(`  ✅ Found ${tabArticles.length} article(s)`);
-        tabArticles.forEach((article: MediumArticle) => {
-          console.error(`     - "${article.title}"`);
-        });
+        if (!this.isTestEnvironment()) {
+          console.error(`  ✅ Found ${tabArticles.length} article(s)`);
+          tabArticles.forEach((article: MediumArticle) => {
+            console.error(`     - "${article.title}"`);
+          });
+        }
 
         allArticles.push(...tabArticles);
 
@@ -598,7 +620,9 @@ export class BrowserMediumClient {
   async getArticleContent(url: string, requireLogin: boolean = true): Promise<string> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    console.error(`📖 Fetching article content from: ${url}`);
+    if (!this.isTestEnvironment()) {
+      console.error(`📖 Fetching article content from: ${url}`);
+    }
 
     // Trust that session was already validated during initialization
     // If session exists, assume we're logged in (validated by validateSessionFast earlier)
@@ -1116,7 +1140,9 @@ export class BrowserMediumClient {
       return articles;
     }, searchQuery);
 
-    console.error(`🎉 Search completed. Found ${articles.length} articles`);
+    if (!this.isTestEnvironment()) {
+      console.error(`🎉 Search completed. Found ${articles.length} articles`);
+    }
     return articles;
   }
 
@@ -1498,22 +1524,30 @@ export class BrowserMediumClient {
   async getFeed(category: FeedCategory, limit: number = 10): Promise<MediumFeedArticle[]> {
     if (!this.page) throw new Error('Browser not initialized');
 
-    console.error(`📰 Fetching ${category} feed (limit: ${limit})...`);
+    if (!this.isTestEnvironment()) {
+      console.error(`📰 Fetching ${category} feed (limit: ${limit})...`);
+    }
 
     // Handle 'all' category by fetching from all feeds
     if (category === 'all') {
-      console.error('  📚 Fetching from all feeds...');
+      if (!this.isTestEnvironment()) {
+        console.error('  📚 Fetching from all feeds...');
+      }
       const categories: Array<'featured' | 'for-you' | 'following'> = ['featured', 'for-you', 'following'];
       const allArticles: MediumFeedArticle[] = [];
 
       for (const cat of categories) {
         try {
-          console.error(`  📰 Fetching ${cat} feed...`);
+          if (!this.isTestEnvironment()) {
+            console.error(`  📰 Fetching ${cat} feed...`);
+          }
           const articles = await this.getFeed(cat, limit);
           // Tag each article with its source feed
           articles.forEach(article => article.feedCategory = cat);
           allArticles.push(...articles);
-          console.error(`  ✅ Got ${articles.length} article(s) from ${cat}`);
+          if (!this.isTestEnvironment()) {
+            console.error(`  ✅ Got ${articles.length} article(s) from ${cat}`);
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           console.error(`  ⚠️  Failed to fetch ${cat} feed: ${message}`);
@@ -1587,7 +1621,9 @@ export class BrowserMediumClient {
 
     await this.ensureLoggedIn(); // Lists require authentication
 
-    console.error('📚 Fetching user reading lists...');
+    if (!this.isTestEnvironment()) {
+      console.error('📚 Fetching user reading lists...');
+    }
 
     // Navigate to lists page
     await this.page.goto('https://medium.com/me/lists', {
@@ -1718,7 +1754,9 @@ export class BrowserMediumClient {
       return mediumLists;
     });
 
-    console.error(`  ✅ Found ${lists.length} reading list(s)`);
+    if (!this.isTestEnvironment()) {
+      console.error(`  ✅ Found ${lists.length} reading list(s)`);
+    }
     return lists;
   }
 
