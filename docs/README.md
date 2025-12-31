@@ -22,7 +22,6 @@ Comprehensive documentation for Medium MCP Server.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines, PR process
 - [AGENTS.md](../AGENTS.md) - Complete project guide (for AI agents and developers)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture, design decisions
-- [DOCUMENTATION_GUIDE.md](./DOCUMENTATION_GUIDE.md) - Documentation structure and organization
 
 **Architecture Decision Records** (Why Decisions Were Made):
 - [ADR Index](./adr/README.md) - All ADRs with quick navigation
@@ -75,7 +74,7 @@ See [best-practices/README.md](./best-practices/README.md) for overview.
 
 **Primary documentation**: [AGENTS.md](../AGENTS.md)
 
-**Documentation structure**: [DOCUMENTATION_GUIDE.md](./DOCUMENTATION_GUIDE.md) - Explains how documentation is organized (two-tier architecture)
+**Documentation structure**: [best-practices/DOCUMENTATION.md](./best-practices/DOCUMENTATION.md) - Documentation organization best practices
 
 **Before making changes**:
 1. Read AGENTS.md thoroughly

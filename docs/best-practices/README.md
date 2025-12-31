@@ -113,6 +113,42 @@ git push origin fix/update-selector
 
 ---
 
+### 📘 [Documentation Best Practices](./DOCUMENTATION.md)
+
+**Purpose**: Guidelines for organizing and maintaining project documentation
+
+**Key Features**:
+- Two-tier architecture (universal best practices vs project-specific)
+- File organization patterns
+- Documentation standards and quality checks
+- When to update documentation
+- Decision tree for where to add new docs
+
+**When to use**:
+- Any project with multiple documentation files
+- Projects with both best practices and project-specific docs
+- Teams with AI contributors who need clear documentation structure
+- Projects wanting reusable documentation patterns
+
+**What it covers**:
+- Two-tier documentation architecture
+- Quality checks for each tier (project-agnostic vs project-specific)
+- Common documentation patterns (README, CONTRIBUTING, AGENTS.md, ADRs)
+- How tiers connect (Best Practice → Application → Rationale)
+- Documentation maintenance and health metrics
+
+**Quick Example**:
+```markdown
+# ❌ BAD - Project-specific in best practices
+Use Winston logger with our CloudWatch transport.
+
+# ✅ GOOD - Universal pattern in best practices
+Use a structured logger with semantic levels.
+Choose a logger that fits your infrastructure.
+```
+
+---
+
 ## Using These Best Practices in Other Projects
 
 ### Option 1: Direct Copy
@@ -150,7 +186,7 @@ These best practices are **standards**. For project-specific implementations, se
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - How to contribute to this project
 - [AGENTS.md](../../AGENTS.md) - Complete project guide
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) - Technical architecture
-- [DOCUMENTATION_GUIDE.md](../DOCUMENTATION_GUIDE.md) - Documentation structure and organization
+- [DOCUMENTATION.md](./DOCUMENTATION.md) - Documentation organization best practices
 
 ---
 

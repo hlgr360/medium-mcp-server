@@ -2,7 +2,7 @@
 
 This file provides guidance to AI coding assistants (Claude Code, GitHub Copilot, Cursor, etc.) when working with code in this repository.
 
-**Documentation Structure**: See [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) for how documentation is organized (two-tier architecture: universal best practices vs project-specific guidance).
+**Documentation Structure**: See [docs/best-practices/DOCUMENTATION.md](./docs/best-practices/DOCUMENTATION.md) for documentation organization best practices (two-tier architecture: universal best practices vs project-specific guidance).
 
 ## Table of Contents
 
@@ -756,4 +756,4 @@ async getArticles(): Promise<Article[]> {
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed technical architecture
 - [README.md](./README.md) - User documentation
 - [tests/fixtures/README.md](./tests/fixtures/README.md) - Fixture usage guide
-- [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) - Documentation structure and organization
+- [docs/best-practices/DOCUMENTATION.md](./docs/best-practices/DOCUMENTATION.md) - Documentation organization best practices

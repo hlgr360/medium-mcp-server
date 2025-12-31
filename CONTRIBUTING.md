@@ -751,7 +751,7 @@ Your contributions help make AI-powered content publishing more accessible to de
 **For AI Agents**:
 - Follow this guide strictly
 - Reference AGENTS.md for project context
-- Read [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) to understand documentation structure
+- Read [docs/best-practices/DOCUMENTATION.md](./docs/best-practices/DOCUMENTATION.md) to understand documentation structure
 - Use EnterPlanMode for planning
 - Include fragility assessments
 - Generate comprehensive tests
