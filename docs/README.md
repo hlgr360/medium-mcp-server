@@ -20,8 +20,16 @@ Comprehensive documentation for Medium MCP Server.
 
 **Essential Reading**:
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines, PR process
-- [AGENTS.md](../AGENTS.md) - Complete project guide (for Claude Code and developers)
+- [AGENTS.md](../AGENTS.md) - Complete project guide (for AI agents and developers)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture, design decisions
+
+**Architecture Decision Records** (Why Decisions Were Made):
+- [ADR Index](./adr/README.md) - All ADRs with quick navigation
+- [ADR-001: Fixture-Based Testing](./adr/001-fixture-based-testing.md) - Why we use HTML snapshots
+- [ADR-002: Script Reorganization](./adr/002-script-reorganization.md) - Why scripts are in subdirectories
+- [ADR-003: AGENTS.md Convention](./adr/003-agents-md-convention.md) - Why AGENTS.md instead of CLAUDE.md
+- [ADR-004: Semantic Logging](./adr/004-semantic-logging.md) - Why custom Logger with levels
+- [ADR-005: Selector Fallback Strategy](./adr/005-selector-fallback-strategy.md) - Why selector arrays
 
 **Development Conventions** (Reusable Standards):
 - [Logging Best Practices](./conventions/LOGGING.md)
@@ -51,23 +59,27 @@ See [conventions/README.md](./conventions/README.md) for overview.
 ### Architecture
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - System design, component interactions
 - [AGENTS.md](../AGENTS.md#architecture) - Architecture overview
+- [ADRs](./adr/README.md) - Why architectural decisions were made
 
 ### Contributing
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Full contribution guide
-- [AI Guidelines](../CONTRIBUTING.md#ai-specific-contribution-guidelines) - For Claude Code & AI agents
+- [AI Guidelines](../CONTRIBUTING.md#ai-specific-contribution-guidelines) - For AI agents
 - [CHANGELOG Maintenance](../CONTRIBUTING.md#changelog-maintenance) - How to update CHANGELOG.md
+- [ADRs](./adr/README.md) - Decision rationale and context
 
 ---
 
-## For AI Agents (Claude Code)
+## For AI Agents
 
 **Primary documentation**: [AGENTS.md](../AGENTS.md)
 
 **Before making changes**:
 1. Read AGENTS.md thoroughly
 2. Review relevant conventions in `conventions/`
-3. Use EnterPlanMode for non-trivial changes
-4. Follow contribution guidelines in CONTRIBUTING.md
+3. **Read ADRs** in `adr/` to understand why decisions were made
+4. Use EnterPlanMode for non-trivial changes
+5. Follow contribution guidelines in CONTRIBUTING.md
+6. **Create new ADRs** for significant architectural decisions
 
 ---
 
