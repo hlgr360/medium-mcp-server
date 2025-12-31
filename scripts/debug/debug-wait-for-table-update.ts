@@ -120,7 +120,7 @@ async function debugWaitForTableUpdate() {
   if (publishedArticles.length === 0) {
     console.log('\n❌ Still not finding published articles!');
     console.log('Taking screenshot for debugging...');
-    const screenshotPath = join(__dirname, '..', 'debug-published-after-wait.png');
+    const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-published-after-wait.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log(`📸 Screenshot: ${screenshotPath}`);
 

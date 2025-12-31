@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { join } from 'path';
 
 async function debugSingleList() {
@@ -60,7 +60,7 @@ async function debugSingleList() {
       console.log(`  Page text preview:\n    "${pageAnalysis.pageTextPreview.replace(/\n/g, ' ')}"`);
 
       // Take screenshot
-      const screenshotPath = join(__dirname, '..', `debug-list-${listId}.png`);
+      const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', `debug-list-${listId}.png`);
       await page.screenshot({ path: screenshotPath });
       console.log(`  📸 Screenshot: ${screenshotPath}`);
     }

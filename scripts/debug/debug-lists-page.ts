@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -31,7 +31,7 @@ async function debugListsPage() {
     console.log('  Title:', await page.title());
 
     // Take screenshot
-    const screenshotPath = join(__dirname, '..', 'debug-lists-page.png');
+    const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-lists-page.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log('  📸 Screenshot:', screenshotPath);
 
@@ -120,7 +120,7 @@ async function debugListsPage() {
     });
 
     // Save analysis to file
-    const analysisPath = join(__dirname, '..', 'lists-page-analysis.json');
+    const analysisPath = join(__dirname, '..', '..', '.debug', 'analysis', 'lists-page-analysis.json');
     writeFileSync(analysisPath, JSON.stringify(analysis, null, 2));
 
     console.log('\n═══════════════════════════════════════════════════════════════');

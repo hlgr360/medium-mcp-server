@@ -139,7 +139,7 @@ async function debugPublishedArticles() {
         console.log('   ❌ No articles found with this approach');
 
         // Take screenshot for debugging
-        const screenshotPath = join(__dirname, '..', `debug-published-${approach.name.replace(/\s+/g, '-')}.png`);
+        const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', `debug-published-${approach.name.replace(/\s+/g, '-')}.png`);
         await page.screenshot({ path: screenshotPath, fullPage: true });
         console.log(`   📸 Screenshot saved: ${screenshotPath}`);
       }

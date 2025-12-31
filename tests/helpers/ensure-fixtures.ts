@@ -39,7 +39,7 @@ function captureFixtures(): void {
   if (!existsSync(sessionPath)) {
     console.error('\n❌ Cannot capture fixtures: No Medium session found!\n');
     console.error('Please create a session first (one-time setup):');
-    console.error('   npx ts-node scripts/test-login-flow.ts\n');
+    console.error('   npx ts-node scripts/test/test-login-flow.ts\n');
     console.error('Then run tests again. Fixtures will auto-capture using your session.\n');
     throw new Error('Medium session required for fixture capture');
   }
@@ -50,7 +50,7 @@ function captureFixtures(): void {
 
   try {
     // Run the capture script synchronously
-    execSync('npx ts-node scripts/capture-fixtures.ts', {
+    execSync('npx ts-node scripts/utils/capture-fixtures.ts', {
       stdio: 'inherit', // Show output to user
       cwd: join(__dirname, '..', '..')
     });
@@ -58,7 +58,7 @@ function captureFixtures(): void {
     console.log('\n✅ Fixtures captured successfully!\n');
   } catch (error) {
     console.error('\n❌ Failed to capture fixtures.');
-    console.error('Please run manually: npx ts-node scripts/capture-fixtures.ts\n');
+    console.error('Please run manually: npx ts-node scripts/utils/capture-fixtures.ts\n');
     throw error;
   }
 }

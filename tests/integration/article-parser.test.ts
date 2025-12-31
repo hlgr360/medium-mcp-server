@@ -16,7 +16,7 @@ const fixturesDir = join(__dirname, '..', 'fixtures');
 function loadFixture(filename: string): string {
   const path = join(fixturesDir, filename);
   if (!existsSync(path)) {
-    throw new Error(`Fixture not found: ${filename}. Run: npx ts-node scripts/capture-fixtures.ts`);
+    throw new Error(`Fixture not found: ${filename}. Run: npx ts-node scripts/utils/capture-fixtures.ts`);
   }
   return readFileSync(path, 'utf-8');
 }

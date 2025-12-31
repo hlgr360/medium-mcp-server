@@ -157,7 +157,7 @@ npm run test:all                     # Jest + Playwright (149 tests)
 
 ```bash
 # Capture HTML snapshots (requires login)
-npx ts-node scripts/capture-fixtures.ts
+npx ts-node scripts/utils/capture-fixtures.ts
 
 # Run fixture-based tests
 npm run test:unit -- tests/integration/
@@ -248,7 +248,7 @@ tests/                  # Fixture-based & E2E (67 tests)
 
 **Automated One-Time Login** (via `globalSetup`):
 
-Playwright automatically runs `scripts/setup-test-session.ts` before all tests to ensure a valid Medium session exists:
+Playwright automatically runs `scripts/utils/setup-test-session.ts` before all tests to ensure a valid Medium session exists:
 
 1. **First run** (no session file):
    - Opens browser visibly for manual login
@@ -291,7 +291,7 @@ Playwright automatically runs `scripts/setup-test-session.ts` before all tests t
 
 **Workflow**:
 1. Login to Medium (creates session)
-2. Run `npx ts-node scripts/capture-fixtures.ts`
+2. Run `npx ts-node scripts/utils/capture-fixtures.ts`
 3. Fixtures saved to `tests/fixtures/`
 4. Tests use parsers in `tests/parsers/` with fixtures
 
@@ -311,17 +311,17 @@ Playwright automatically runs `scripts/setup-test-session.ts` before all tests t
 
 | Broken Feature | Debug Script |
 |----------------|--------------|
-| Login detection | `scripts/debug-login.ts` |
-| Article retrieval | `scripts/debug-articles-detailed.ts` |
-| Article publishing | `scripts/debug-editor-wait.ts` |
-| Publish flow | `scripts/debug-publish-flow.ts` |
-| Reading lists | `scripts/debug-lists-page.ts` |
-| Individual list | `scripts/debug-single-list.ts` |
+| Login detection | `scripts/debug/debug-login.ts` |
+| Article retrieval | `scripts/debug/debug-articles-detailed.ts` |
+| Article publishing | `scripts/debug/debug-editor-wait.ts` |
+| Publish flow | `scripts/debug/debug-publish-flow.ts` |
+| Reading lists | `scripts/debug/debug-lists-page.ts` |
+| Individual list | `scripts/debug/debug-single-list.ts` |
 
 #### Step 2: Run Debug Script
 
 ```bash
-npx ts-node scripts/debug-login.ts
+npx ts-node scripts/debug/debug-login.ts
 # Opens browser, outputs selector analysis, saves screenshots
 ```
 
@@ -349,10 +349,10 @@ Add comment: `// Updated Dec 2025 - Medium changed UI`
 
 ```bash
 # Test the fix
-npx ts-node scripts/test-get-articles-simple.ts
+npx ts-node scripts/test/test-get-articles-simple.ts
 
 # Re-capture fixtures with new selectors
-npx ts-node scripts/capture-fixtures.ts
+npx ts-node scripts/utils/capture-fixtures.ts
 
 # Run fixture tests
 npm run test:unit -- tests/integration/

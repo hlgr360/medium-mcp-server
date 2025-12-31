@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 
 async function testAllArticles() {
   console.log('🧪 Testing getUserArticles() with tab-based scraping...\n');

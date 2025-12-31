@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -33,7 +33,7 @@ async function debugEditorPage() {
     console.log('  Title:', await page.title());
 
     // Take screenshot
-    const screenshotPath = join(__dirname, '..', 'debug-editor-page.png');
+    const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-editor-page.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log('  📸 Screenshot saved:', screenshotPath);
 
@@ -135,7 +135,7 @@ async function debugEditorPage() {
     });
 
     // Save analysis to file
-    const analysisPath = join(__dirname, '..', 'editor-analysis.json');
+    const analysisPath = join(__dirname, '..', '..', '.debug', 'analysis', 'editor-analysis.json');
     writeFileSync(analysisPath, JSON.stringify(analysis, null, 2));
 
     console.log('\n═══════════════════════════════════════════════════════════════');

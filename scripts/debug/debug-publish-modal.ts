@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { join } from 'path';
 
 async function debugPublishModal() {
@@ -144,7 +144,7 @@ async function debugPublishModal() {
       });
 
       // Screenshot
-      const screenshotPath = join(__dirname, '..', 'debug-publish-modal.png');
+      const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-publish-modal.png');
       await page.screenshot({ path: screenshotPath, fullPage: true });
       console.log(`\n📸 Screenshot: ${screenshotPath}`);
 

@@ -112,7 +112,7 @@ Medium UI selectors are defined with fallback strategies throughout `browser-cli
 2. Update selectors in `browser-client.ts`
 3. Add new selectors to fallback arrays (don't replace existing ones)
 4. Test with corresponding test script
-5. **Re-capture fixtures**: `npx ts-node scripts/capture-fixtures.ts`
+5. **Re-capture fixtures**: `npx ts-node scripts/utils/capture-fixtures.ts`
 6. **Run fixture tests**: `npm run test:unit -- tests/integration/`
 7. Update documentation with new selectors
 
@@ -361,7 +361,7 @@ tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
 ### Login Detection Issues
 - **Browser doesn't close after login** (Fixed in v1.2): Update to latest version - Medium changed their UI selectors
 - **Session file not created**: Ensure you complete the full login (see profile icon appear)
-- **Debug login detection**: Run `npx ts-node scripts/debug-login.ts` to analyze current page selectors
+- **Debug login detection**: Run `npx ts-node scripts/debug/debug-login.ts` to analyze current page selectors
 - **Current selectors (v1.2)**:
   - User icon: `[data-testid="headerUserIcon"]`
   - Write button: `[data-testid="headerWriteButton"]`
@@ -370,8 +370,8 @@ tail -100 ~/Library/Logs/Claude/mcp*.log | grep -i error
 ### Article Retrieval Issues (v1.2+)
 - **`get-my-articles` returns 0 articles**: Medium changed from card layout to table layout
   - **Fixed in v1.2**: Update to latest version with tab-based scraping
-  - **Debug article page**: Run `npx ts-node scripts/debug-articles.ts` to analyze page structure
-  - **Test retrieval**: Run `npx ts-node scripts/test-all-articles.ts` to validate
+  - **Debug article page**: Run `npx ts-node scripts/debug/debug-articles.ts` to analyze page structure
+  - **Test retrieval**: Run `npx ts-node scripts/test/test-all-articles.ts` to validate
 - **Missing articles from specific tabs**: Check tab counts manually
   - Tabs show counts: "Drafts1", "Published2", etc.
   - Only tabs with counts > 0 are scraped
@@ -392,7 +392,7 @@ When Medium updates their website, selectors break. Here's how to fix them:
 3. **Analyze the output** to find new selectors
 4. **Update `src/browser-client.ts`** with new selectors
 5. **Run the corresponding test** to verify the fix
-6. **Re-capture fixtures**: `npx ts-node scripts/capture-fixtures.ts`
+6. **Re-capture fixtures**: `npx ts-node scripts/utils/capture-fixtures.ts`
 7. **Run fixture-based tests**: `npm run test:unit -- tests/integration/`
 8. **Update documentation** (README.md, CLAUDE.md) with new selectors
 
@@ -400,28 +400,28 @@ When Medium updates their website, selectors break. Here's how to fix them:
 
 | **Functionality** | **Debug Script** | **Purpose** | **What It Shows** |
 |-------------------|------------------|-------------|-------------------|
-| **Login Detection** | `scripts/debug-login.ts` | Analyze login page selectors | Current login indicators, button text, data-testid values |
-| **Article List** | `scripts/debug-articles-detailed.ts` | Analyze articles page DOM | Table structure, tabs, link formats, article counts |
-| **Article List** | `scripts/debug-tab-navigation.ts` | Test tab clicking | Tab detection, navigation behavior |
-| **Article Editor** | `scripts/debug-editor-wait.ts` | Analyze editor selectors | Title/content fields, contenteditable elements, placeholders |
-| **Article Editor** | `scripts/debug-editor-page.ts` | Comprehensive editor DOM | Saves full editor analysis to JSON |
-| **Publish Flow** | `scripts/debug-publish-flow.ts` | Test publish flow | Editor fields, publish buttons, flow validation |
-| **Publish Modal** | `scripts/debug-publish-modal.ts` | Analyze publish modal | Tag inputs, publish buttons, modal structure |
-| **Lists Page** | `scripts/debug-lists-page.ts` | Analyze lists page structure | List elements, data-testid values, list counts |
-| **Single List** | `scripts/debug-single-list.ts` | Test list navigation | List page URLs, article detection |
-| **Fixtures** | `scripts/capture-fixtures.ts` | Capture HTML snapshots | Saves HTML to tests/fixtures/ for fixture tests |
+| **Login Detection** | `scripts/debug/debug-login.ts` | Analyze login page selectors | Current login indicators, button text, data-testid values |
+| **Article List** | `scripts/debug/debug-articles-detailed.ts` | Analyze articles page DOM | Table structure, tabs, link formats, article counts |
+| **Article List** | `scripts/debug/debug-tab-navigation.ts` | Test tab clicking | Tab detection, navigation behavior |
+| **Article Editor** | `scripts/debug/debug-editor-wait.ts` | Analyze editor selectors | Title/content fields, contenteditable elements, placeholders |
+| **Article Editor** | `scripts/debug/debug-editor-page.ts` | Comprehensive editor DOM | Saves full editor analysis to JSON |
+| **Publish Flow** | `scripts/debug/debug-publish-flow.ts` | Test publish flow | Editor fields, publish buttons, flow validation |
+| **Publish Modal** | `scripts/debug/debug-publish-modal.ts` | Analyze publish modal | Tag inputs, publish buttons, modal structure |
+| **Lists Page** | `scripts/debug/debug-lists-page.ts` | Analyze lists page structure | List elements, data-testid values, list counts |
+| **Single List** | `scripts/debug/debug-single-list.ts` | Test list navigation | List page URLs, article detection |
+| **Fixtures** | `scripts/utils/capture-fixtures.ts` | Capture HTML snapshots | Saves HTML to tests/fixtures/ for fixture tests |
 
 #### Test Scripts for Validation
 
 | **Test Script** | **Purpose** | **Expected Result** |
 |-----------------|-------------|---------------------|
-| `scripts/test-get-articles-simple.ts` | Test article retrieval | Lists all articles with status tags |
-| `scripts/test-get-lists.ts` | Test reading lists retrieval | Displays all reading lists with details |
-| `scripts/test-list-articles.ts` | Test list articles retrieval | Shows articles from specific list |
-| `scripts/test-feed-all.ts` | Test feed retrieval | Fetches articles from all feed categories |
-| `scripts/test-publish-article.ts` | Test draft with tags | Successfully creates draft with tags |
-| `scripts/test-publish-no-tags.ts` | Test draft creation | Successfully creates draft without tags |
-| `scripts/test-login-flow.ts` | Test login detection | Confirms session is valid |
+| `scripts/test/test-get-articles-simple.ts` | Test article retrieval | Lists all articles with status tags |
+| `scripts/test/test-get-lists.ts` | Test reading lists retrieval | Displays all reading lists with details |
+| `scripts/test/test-list-articles.ts` | Test list articles retrieval | Shows articles from specific list |
+| `scripts/test/test-feed-all.ts` | Test feed retrieval | Fetches articles from all feed categories |
+| `scripts/test/test-publish-article.ts` | Test draft with tags | Successfully creates draft with tags |
+| `scripts/test/test-publish-no-tags.ts` | Test draft creation | Successfully creates draft without tags |
+| `scripts/test/test-login-flow.ts` | Test login detection | Confirms session is valid |
 
 #### How to Use Debug Scripts
 
@@ -429,7 +429,7 @@ All scripts open a **visible browser window** and wait 60-90 seconds for manual 
 
 ```bash
 # Example: Debug login page
-npx ts-node scripts/debug-login.ts
+npx ts-node scripts/debug/debug-login.ts
 
 # Output shows:
 # - All buttons with their text and data-testid
@@ -536,8 +536,8 @@ medium-mcp-server/
 - **medium-session.json**: Persistent login session storage
 - **tests/parsers/**: Standalone HTML parsing modules (linkedom-based)
 - **tests/fixtures/**: Captured Medium page snapshots for fixture testing
-- **scripts/capture-fixtures.ts**: Tool for capturing fresh HTML snapshots
-- **scripts/debug-*.ts**: Debugging tools for Medium UI changes
+- **scripts/utils/capture-fixtures.ts**: Tool for capturing fresh HTML snapshots
+- **scripts/debug/debug-*.ts**: Debugging tools for Medium UI changes
 - **auth.ts/client.ts**: Legacy API code (unused, kept for reference)
 
 ### Testing
@@ -629,7 +629,7 @@ Fixtures are **not included in the repository** (they contain personal data). Ho
 npm run test:unit
 
 # Option 2: Manual capture (if you prefer)
-npx ts-node scripts/capture-fixtures.ts
+npx ts-node scripts/utils/capture-fixtures.ts
 ```
 
 **How it works:**
@@ -639,7 +639,7 @@ npx ts-node scripts/capture-fixtures.ts
 - If you don't have a session yet, create one first:
   ```bash
   # Create session (one-time, opens browser for login)
-  npx ts-node scripts/test-login-flow.ts
+  npx ts-node scripts/test/test-login-flow.ts
 
   # Then run tests - fixtures auto-capture using existing session
   npm run test:unit
@@ -660,7 +660,7 @@ npx ts-node scripts/capture-fixtures.ts
 **How to re-capture fixtures:**
 ```bash
 # Capture fresh HTML snapshots from Medium
-npx ts-node scripts/capture-fixtures.ts
+npx ts-node scripts/utils/capture-fixtures.ts
 
 # Run fixture tests to validate parsing
 npm run test:unit -- tests/integration/html-parsing.test.ts

@@ -24,7 +24,7 @@ async function debugTabDetection() {
   console.log('Current URL:', page.url());
   console.log('Page title:', await page.title());
 
-  await page.screenshot({ path: join(__dirname, '..', 'debug-tab-page.png'), fullPage: true });
+  await page.screenshot({ path: join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-tab-page.png'), fullPage: true });
   console.log('Screenshot saved to debug-tab-page.png\n');
 
   const tabInfo = await page.evaluate(() => {

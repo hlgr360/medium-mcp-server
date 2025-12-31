@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { join } from 'path';
 
 async function debugEditorWait() {
@@ -147,7 +147,7 @@ async function debugEditorWait() {
     }
 
     // Screenshot
-    const screenshotPath = join(__dirname, '..', 'debug-editor-wait.png');
+    const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-editor-wait.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log('\n📸 Screenshot:', screenshotPath);
 

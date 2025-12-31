@@ -13,7 +13,7 @@
  *   - Session file must exist at medium-session.json
  */
 
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 import { writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 

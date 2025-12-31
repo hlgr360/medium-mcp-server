@@ -11,7 +11,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
 
   // Global setup: Ensure valid session exists before running tests
-  globalSetup: './scripts/setup-test-session.ts',
+  globalSetup: './scripts/utils/setup-test-session.ts',
 
   // Maximum time one test can run
   timeout: 60000, // 60 seconds per test

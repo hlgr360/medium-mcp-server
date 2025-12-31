@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 
 async function testGetArticles() {
   console.log('🧪 Testing getUserArticles() with new selectors...\n');

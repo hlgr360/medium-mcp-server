@@ -54,7 +54,7 @@ async function debugArticles() {
       console.log('Title:', await page.title());
 
       // Take screenshot
-      const screenshotPath = join(__dirname, '..', `debug-articles-${url.split('/').pop()}.png`);
+      const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', `debug-articles-${url.split('/').pop()}.png`);
       await page.screenshot({ path: screenshotPath, fullPage: true });
       console.log(`📸 Screenshot saved: ${screenshotPath}`);
 

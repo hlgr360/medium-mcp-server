@@ -105,6 +105,11 @@ improved-login.js
 
 # Debug script output files
 editor-analysis.json
+lists-page-analysis.json
+*-analysis.json
+
+# Debug output directory
+.debug/
 
 # macOS
 .DS_Store

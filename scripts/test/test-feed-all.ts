@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 
 async function testFeedAll() {
   console.log('🧪 Testing getFeed() with category="all"...\n');

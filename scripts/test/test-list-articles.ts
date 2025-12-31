@@ -1,4 +1,4 @@
-import { BrowserMediumClient } from '../src/browser-client';
+import { BrowserMediumClient } from '../../src/browser-client';
 
 async function testListArticles() {
   console.log('🧪 Testing getListArticles() method...\n');

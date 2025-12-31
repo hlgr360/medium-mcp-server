@@ -53,7 +53,7 @@ async function debugPublishFlow() {
   console.log('  Title:', await page.title());
 
   // Take screenshot
-  const screenshotPath = join(__dirname, '..', 'debug-publish-page.png');
+  const screenshotPath = join(__dirname, '..', '..', '.debug', 'screenshots', 'debug-publish-page.png');
   await page.screenshot({ path: screenshotPath, fullPage: true });
   console.log('  📸 Screenshot:', screenshotPath);
 
