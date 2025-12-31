@@ -131,6 +131,32 @@ npm run test:unit -- tests/integration/  # Run fixture tests
 - Descriptive names (no abbreviations except common ones like `url`, `id`)
 - **AI Agents**: Follow existing patterns exactly, avoid over-engineering
 
+### Git Workflow & Branch Strategy
+
+**⚠️ MANDATORY: Never commit directly to `main` branch**
+
+All changes must go through feature branches and pull requests.
+
+**Branch naming conventions**:
+```bash
+feature/description      # New features
+fix/description          # Bug fixes
+refactor/description     # Code refactoring
+docs/description         # Documentation changes
+test/description         # Test additions
+chore/description        # Maintenance
+
+# Examples:
+feature/add-publications-support
+fix/session-validation-timeout
+refactor/extract-list-parser
+docs/add-common-pitfalls
+test/add-list-parser-fixtures
+chore/update-playwright
+```
+
+**Why**: Protects main branch, enables code review, maintains clean history
+
 ### Pull Request Process
 
 1. **Create Feature Branch**
@@ -183,6 +209,79 @@ npm run test:unit -- tests/integration/  # Run fixture tests
    - Reference related issues (`Fixes #123`)
    - Note any breaking changes
    - **AI Agents**: Include planning context from EnterPlanMode
+
+### ✅ Pre-Commit Checklist
+
+**Before every commit, verify**:
+
+#### Code Quality
+- [ ] All files added to git (`git add .` or selective add)
+- [ ] No untracked files that should be committed (`git status`)
+- [ ] Code follows project style (matches existing code)
+- [ ] No commented-out code (remove or add explanation)
+- [ ] No debug statements (`console.log`, `debugger`)
+- [ ] TypeScript compiles without errors (`npx tsc --noEmit`)
+
+#### Testing
+- [ ] All unit tests pass (`npm run test:unit`)
+- [ ] All E2E tests pass (`npm test`)
+- [ ] **Zero warnings** in test output (see [Testing Conventions](./docs/conventions/TESTING.md))
+- [ ] New tests added for changes
+- [ ] Fixtures updated if parsers changed (`npx ts-node scripts/utils/capture-fixtures.ts`)
+
+#### Documentation
+- [ ] Code comments updated if behavior changed
+- [ ] README updated if setup/usage changed
+- [ ] **CHANGELOG.md updated** with entry in `[Unreleased]` section
+- [ ] AGENTS.md updated if selectors or tools changed
+- [ ] ADR created if architectural decision made
+
+#### Security & Performance
+- [ ] No hardcoded secrets or credentials
+- [ ] No obvious performance regressions
+- [ ] Error handling implemented
+- [ ] Input validation added for external data
+
+### ✅ Pull Request Checklist
+
+**Before opening PR, verify**:
+
+#### Branch & Commits
+- [ ] Branch created from `main` (not old feature branch)
+- [ ] Branch name follows convention (`feature/`, `fix/`, etc.)
+- [ ] All commits have clear, descriptive messages
+- [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/) format
+- [ ] No "fix typo" or "WIP" commits (squash if needed)
+
+#### Requirements
+- [ ] All user requirements addressed
+- [ ] All acceptance criteria met
+- [ ] Breaking changes documented in CHANGELOG.md with migration guide
+- [ ] Related issues referenced (`Fixes #123`, `Relates to #456`)
+
+#### Testing
+- [ ] All 149 tests pass locally
+- [ ] Manual testing completed for changed functionality
+- [ ] Test results included in PR description
+- [ ] No flaky tests introduced
+
+#### Documentation
+- [ ] PR description complete with:
+  - **Summary** of changes (what)
+  - **Rationale** (why)
+  - **Test results** confirmation
+  - **Breaking changes** (if any)
+  - **Screenshots** (for UI changes)
+- [ ] All documentation updated (README, AGENTS.md, CONTRIBUTING.md)
+- [ ] CHANGELOG.md has entry in `[Unreleased]`
+
+#### Code Review
+- [ ] Self-review completed (read your own diff)
+- [ ] No merge conflicts with main
+- [ ] Ready for review (not draft)
+- [ ] CI/CD pipeline will pass (if applicable)
+
+**For AI Agents**: Include planning context and decision rationale in PR description
 
 ## 🤖 AI-Specific Contribution Guidelines
 

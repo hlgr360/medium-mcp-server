@@ -524,6 +524,213 @@ npm run test:all
 
 ---
 
+## Common Pitfalls
+
+### Critical Mistakes to Avoid
+
+**Import Paths After File Moves** 🔴 **CRITICAL**:
+```typescript
+// ❌ BROKEN - File moved to subdirectory but import not updated
+// In scripts/debug/debug-login.ts:
+import { BrowserMediumClient } from '../src/browser-client';
+
+// ✅ FIXED - Correct relative path from subdirectory
+import { BrowserMediumClient } from '../../src/browser-client';
+```
+
+**Rule**: Count directory depth:
+- `scripts/` → 1 level → `../src/`
+- `scripts/debug/` → 2 levels → `../../src/`
+- `scripts/test/` → 2 levels → `../../src/`
+
+**History**: Affected 21 files in commit `55b6914` after script reorganization
+
+---
+
+**Logging** ❌ **Don't use console.log**:
+```typescript
+// ❌ BAD - Pollutes MCP stdout, breaks protocol
+console.log('Publishing article...');
+
+// ✅ GOOD - Use Logger with semantic level
+logger.info('Publishing article...');
+logger.debug('Navigated to editor page');
+logger.trace('Trying selector:', selector);
+```
+
+**Why**: MCP protocol uses stdout for JSON-RPC. All logs must go to stderr via Logger.
+
+---
+
+**Selectors** ❌ **Don't use single selectors**:
+```typescript
+// ❌ BAD - Breaks when Medium changes UI
+await page.click('[data-testid="publishButton"]');
+
+// ✅ GOOD - Fallback array survives UI changes
+const selectors = [
+  '[data-testid="publishButton"]',     // Primary
+  '[data-testid="publishStoryButton"]', // Alternative
+  'button:has-text("Publish")'          // Generic
+];
+for (const selector of selectors) {
+  const btn = await page.$(selector);
+  if (btn) {
+    await btn.click();
+    break;
+  }
+}
+```
+
+**Rule**: Always use 3+ fallback selectors, prioritize `data-testid` > `aria-label` > text
+
+---
+
+**Fixtures** ❌ **Don't skip fixture updates**:
+```bash
+# ❌ BAD - Change selectors but don't update fixtures
+# Result: Fixture tests pass but E2E tests fail (stale fixtures)
+
+# ✅ GOOD - Update fixtures after selector changes
+npx ts-node scripts/utils/capture-fixtures.ts
+npm run test:unit -- tests/integration/
+```
+
+**When to update**:
+- After fixing selectors due to Medium UI changes
+- When E2E tests fail but fixture tests pass
+- Every 3-6 months as preventive maintenance
+
+---
+
+**Testing** ❌ **Don't commit with warnings**:
+```bash
+# ❌ BAD - Tests pass but have warnings
+npm test
+# ⚠ Warning: Deprecated function used
+# ✅ 149 tests passing
+
+# ✅ GOOD - Zero warnings
+npm test
+# ✅ 149 tests passing (no warnings)
+```
+
+**Zero warnings requirement**: All tests must run without deprecation warnings, unused import warnings, or resource warnings
+
+---
+
+**CHANGELOG** ❌ **Don't forget to update**:
+```bash
+# ❌ BAD - Commit changes without CHANGELOG entry
+git commit -m "feat: add publications support"
+
+# ✅ GOOD - Update CHANGELOG.md first
+# Add to [Unreleased] section:
+# ### Added
+# - Added support for Medium publications with `get-publication-articles` tool
+
+git add CHANGELOG.md src/
+git commit -m "feat: add publications support"
+```
+
+**Rule**: ALWAYS update CHANGELOG.md for user-facing changes (see [CONTRIBUTING.md](./CONTRIBUTING.md#changelog-maintenance))
+
+---
+
+**Git Workflow** ❌ **Don't commit to main**:
+```bash
+# ❌ BAD - Direct commit to main
+git checkout main
+git commit -m "feat: add new feature"
+git push
+
+# ✅ GOOD - Feature branch + PR
+git checkout -b feature/add-new-feature
+git commit -m "feat: add new feature"
+git push origin feature/add-new-feature
+# Then create PR on GitHub
+```
+
+**Rule**: NEVER commit directly to main. Always use feature branches.
+
+---
+
+**ADRs** ❌ **Don't modify existing ADRs**:
+```bash
+# ❌ BAD - Edit existing ADR
+vim docs/adr/001-fixture-tests.md
+# (change decision content)
+
+# ✅ GOOD - Create new ADR that supersedes
+vim docs/adr/015-migrate-from-fixtures.md
+# Status: Accepted
+# Supersedes: ADR-001
+
+# Update old ADR status only:
+# Status: Superseded by ADR-015
+```
+
+**Rule**: ADRs are historical records. Never modify content, only status. Create new ADR to supersede.
+
+---
+
+**Error Handling** ❌ **Don't swallow errors**:
+```typescript
+// ❌ BAD - Silent failure
+try {
+  await client.getArticles();
+} catch {}
+
+// ✅ GOOD - Log and re-throw or wrap
+try {
+  await client.getArticles();
+} catch (error) {
+  logger.error('Failed to get articles:', error);
+  throw new Error(`Article retrieval failed: ${error.message}`);
+}
+```
+
+**Rule**: Always handle errors with context. For MCP tools, wrap in `{ isError: true, content: [...] }`
+
+---
+
+**Over-Engineering** ❌ **Don't add unnecessary features**:
+```typescript
+// ❌ BAD - User asked for simple feature, you add configuration, caching, etc.
+interface GetArticlesOptions {
+  cache?: boolean;
+  timeout?: number;
+  retries?: number;
+  fallback?: Article[];
+}
+
+// ✅ GOOD - Implement exactly what was requested
+async getArticles(): Promise<Article[]> {
+  // Simple implementation
+}
+```
+
+**Rule**: Only implement what's requested. Don't add "nice to have" features without asking.
+
+---
+
+### Quick Reference Card
+
+| Pitfall | Wrong ❌ | Right ✅ |
+|---------|---------|----------|
+| Import paths | `../src/` in subdirectory | `../../src/` (count depth) |
+| Logging | `console.log()` | `logger.info()` |
+| Selectors | Single selector | Array with 3+ fallbacks |
+| Fixtures | Don't update | Update after selector changes |
+| Testing | Warnings OK | Zero warnings required |
+| CHANGELOG | Skip updating | Always update [Unreleased] |
+| Git | Commit to main | Feature branch + PR |
+| ADRs | Modify existing | Supersede with new ADR |
+| Errors | Swallow silently | Log with context |
+| Features | Over-engineer | Implement only what's asked |
+
+---
+
 ## Known Limitations
 
 - ⏱️ **Speed**: 10-30s per operation (browser automation overhead)

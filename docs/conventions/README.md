@@ -74,6 +74,45 @@ These conventions were developed through building a browser automation MCP serve
 
 ---
 
+### 📘 [Development Best Practices](./DEVELOPMENT.md)
+
+**Purpose**: Universal development workflow and quality standards (git, testing, documentation)
+
+**Key Features**:
+- Git workflow and branch strategy (never commit to main)
+- Zero warnings requirement for all tests
+- Pre-commit and PR checklists
+- Architecture Decision Record (ADR) lifecycle rules
+- Common development pitfalls and how to avoid them
+
+**When to use**:
+- Any software project with team collaboration
+- Projects using git with PR-based workflows
+- Projects requiring consistent quality standards
+- Teams with both human and AI developers
+
+**What it covers**:
+- Git branching and commit message conventions
+- Code quality standards (zero warnings, style consistency)
+- Testing requirements (coverage, isolation, determinism)
+- Documentation requirements (README, ADRs, CHANGELOG)
+- Pre-commit and pull request checklists
+
+**Quick Example**:
+```bash
+# ❌ Don't commit to main
+git checkout main
+git commit -m "fix: update selector"
+
+# ✅ Use feature branch + PR
+git checkout -b fix/update-selector
+git commit -m "fix: update selector fallback array"
+git push origin fix/update-selector
+# Create PR on GitHub
+```
+
+---
+
 ## Using These Conventions in Other Projects
 
 ### Option 1: Direct Copy

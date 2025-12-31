@@ -357,6 +357,138 @@ test   test    + remove
               duplication
 ```
 
+## Test Quality Standards
+
+### Zero Warnings Requirement
+
+**MANDATORY**: All tests must run without warnings
+
+**What this means**:
+- ✅ No deprecation warnings from dependencies
+- ✅ No unused import warnings
+- ✅ No unused variable warnings
+- ✅ No unreachable code warnings
+- ✅ No resource leak warnings (ResourceWarning, file handles, etc.)
+- ✅ No async operation warnings (unhandled promises)
+- ✅ Properly configured mocks (no mock-related warnings)
+
+**Why this matters**:
+- Warnings hide real issues
+- Warnings accumulate into technical debt
+- Warnings make it harder to spot new problems
+- Clean output = professional codebase
+
+**How to achieve**:
+```bash
+# Run tests with verbose output to see warnings
+npm test -- --verbose
+
+# Fix all warnings before committing
+# Common fixes:
+# - Remove unused imports
+# - Migrate from deprecated APIs
+# - Add proper await to async calls
+# - Close resources (files, connections, browsers)
+# - Configure mocks properly
+```
+
+**Example - Good test output**:
+```bash
+$ npm test
+✓ 149 tests passing (6.2s)
+# No warnings = clean code ✅
+```
+
+**Example - Bad test output**:
+```bash
+$ npm test
+⚠ Warning: Deprecated function `oldMethod` used
+⚠ Warning: Unused import 'FooBar'
+✓ 149 tests passing (6.2s)
+# Warnings present = needs fixing ❌
+```
+
+**Common warning sources**:
+
+| Warning Type | Cause | Fix |
+|--------------|-------|-----|
+| Deprecated API | Using old version of library function | Migrate to new API |
+| Unused imports | Import statement not used | Remove import |
+| Unhandled promise | Missing await or .catch() | Add await or .catch() |
+| Resource leak | File/connection not closed | Add cleanup in afterEach |
+| Mock configuration | Mock not properly set up | Configure mock correctly |
+
+### Test Isolation
+
+**Each test should**:
+- ✅ Run independently (no shared state)
+- ✅ Clean up after itself (close connections, files, browsers)
+- ✅ Not depend on test execution order
+- ✅ Not leave side effects (database changes, file system changes)
+
+**Use setup/teardown**:
+```typescript
+describe('MyComponent', () => {
+  let resource: Resource;
+
+  beforeEach(() => {
+    resource = new Resource();
+  });
+
+  afterEach(() => {
+    resource.cleanup(); // Prevents resource warnings
+  });
+
+  it('test 1', () => {
+    // Uses fresh resource
+  });
+
+  it('test 2', () => {
+    // Uses fresh resource (independent from test 1)
+  });
+});
+```
+
+### Test Speed
+
+**Performance targets**:
+- Unit tests: < 100ms per test
+- Integration tests (mocks): < 500ms per test
+- Integration tests (fixtures): < 200ms per test
+- E2E tests: < 60s per test
+
+**If tests are slow**:
+1. Profile to find bottleneck
+2. Use mocks for external dependencies
+3. Use fixtures instead of live data
+4. Parallelize test execution
+5. Consider if E2E test is really needed
+
+### Test Determinism
+
+**Tests must be deterministic** (same result every time):
+
+```typescript
+// ❌ BAD - Random/flaky test
+it('should process items', () => {
+  const items = getRandomItems(); // Different each time
+  expect(process(items)).toBe(expected); // Flaky!
+});
+
+// ✅ GOOD - Deterministic test
+it('should process items', () => {
+  const items = [item1, item2, item3]; // Fixed data
+  expect(process(items)).toBe(expected); // Always same
+});
+```
+
+**Avoid**:
+- ❌ Random data generators
+- ❌ Current timestamps (use fixed dates)
+- ❌ Network calls (use mocks)
+- ❌ File system dependencies (use in-memory or fixtures)
+- ❌ Race conditions (properly await async operations)
+
 ## Best Practices
 
 1. **Test behavior, not implementation**

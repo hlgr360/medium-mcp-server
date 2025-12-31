@@ -38,6 +38,55 @@ This is especially valuable for AI coding assistants who need to understand proj
 - **Deprecated**: No longer recommended but not yet removed
 - **Superseded**: Replaced by a newer decision (link to new ADR)
 
+### CRITICAL: Never Modify Existing ADRs
+
+**❌ DO NOT modify accepted ADRs** - They are historical records
+
+**Why**: ADRs capture decisions at a point in time. Modifying them erases history and context.
+
+**Instead**:
+1. Create a new ADR that supersedes the old one
+2. Update old ADR status to "Superseded by ADR-XXX"
+3. Link between old and new ADRs
+
+**Example supersession**:
+
+Old ADR (001-use-sqlite.md):
+```markdown
+# ADR-001: Use SQLite for Storage
+
+**Status**: Superseded by [ADR-015](./015-use-postgresql.md)
+
+**Date**: 2024-01-15
+
+(Original content remains unchanged...)
+```
+
+New ADR (015-use-postgresql.md):
+```markdown
+# ADR-015: Migrate to PostgreSQL
+
+**Status**: Accepted
+
+**Date**: 2025-01-30
+
+**Supersedes**: [ADR-001](./001-use-sqlite.md)
+
+## Context
+SQLite (ADR-001) worked initially but doesn't scale for production...
+```
+
+**When to supersede**:
+- Requirements changed (what was right then isn't right now)
+- New information available (learned something new)
+- Technology evolved (better options exist)
+- Original decision proven problematic
+
+**When to deprecate**:
+- Decision still valid but no longer recommended
+- Gradual migration to new approach
+- Backward compatibility maintained
+
 ## Creating New ADRs
 
 When making significant architectural decisions:
