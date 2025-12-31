@@ -1,6 +1,6 @@
 import { BrowserMediumClient } from '../../browser-client';
 import { MOCK_SESSIONS } from '../helpers/fixtures';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 // Import custom matchers

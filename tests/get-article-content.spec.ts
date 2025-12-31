@@ -88,10 +88,11 @@ test.describe('getArticleContent() E2E', () => {
       } else {
         console.log('ℹ️  Article fetched (may be preview or public)');
       }
-    } catch (error: any) {
+    } catch (error) {
       // It's OK if the article doesn't exist or is inaccessible
-      console.log(`ℹ️  Article not accessible: ${error.message}`);
-      expect(error.message).toBeDefined();
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`ℹ️  Article not accessible: ${message}`);
+      expect(message).toBeDefined();
     }
   }, 60000);
 
@@ -106,9 +107,10 @@ test.describe('getArticleContent() E2E', () => {
       // Should either get empty content or error message
       expect(content).toBeDefined();
       expect(typeof content).toBe('string');
-    } catch (error: any) {
+    } catch (error) {
       // Error is acceptable for invalid URLs
-      expect(error.message).toBeDefined();
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toBeDefined();
       console.log('✅ Properly threw error for invalid URL');
     }
   }, 60000);

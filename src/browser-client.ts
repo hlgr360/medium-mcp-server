@@ -108,11 +108,6 @@ export class BrowserMediumClient {
     HEIGHT: 720
   } as const;
 
-  private static readonly CLAP_MULTIPLIERS = {
-    K: 1_000,
-    M: 1_000_000
-  } as const;
-
   /**
    * Initialize the browser for automation.
    * @param forceHeadless - Optional parameter to force headless mode. If not provided, uses shouldUseHeadlessMode().
@@ -524,6 +519,7 @@ export class BrowserMediumClient {
             status: status as 'draft' | 'published' | 'unlisted' | 'scheduled' | 'submission' | 'unknown'
           });
         } catch (error) {
+          // Browser context only - does not pollute MCP stdout
           console.error('Error extracting article:', error);
         }
       });
@@ -640,7 +636,7 @@ export class BrowserMediumClient {
 
       // Extract article content with multiple strategies
       const content = await this.page.evaluate(() => {
-        const log = (...args: any[]) => {
+        const log = (..._args: any[]) => {
           // Silent in browser context to avoid JSON interference
         };
         
@@ -682,7 +678,7 @@ export class BrowserMediumClient {
           if (elements.length > 3) { // Need at least a few paragraphs for meaningful content
             const paragraphs: string[] = [];
             
-            elements.forEach((element, index) => {
+            elements.forEach((element, _index) => {
               const text = element.textContent?.trim();
               if (text && text.length > 20) { // Filter out very short paragraphs
                 paragraphs.push(text);
@@ -895,7 +891,7 @@ export class BrowserMediumClient {
 
     const articles = await this.page.evaluate((searchQuery) => {
       // Remove console.log from browser context to avoid JSON interference
-      const log = (...args: any[]) => {
+      const log = (..._args: any[]) => {
         // Silent in browser context
       };
       
@@ -1314,7 +1310,7 @@ export class BrowserMediumClient {
         }
 
         // Extract metadata from each card
-        cardElements.forEach((card, index) => {
+        cardElements.forEach((card, _index) => {
           if (feedArticles.length >= limit) return;
 
           try {
@@ -1629,12 +1625,14 @@ export class BrowserMediumClient {
         const elements = document.querySelectorAll(selector);
         if (elements.length > 0) {
           listElements = elements;
+          // Browser context only - does not pollute MCP stdout
           console.error(`  Found ${elements.length} elements with selector: ${selector}`);
           break;
         }
       }
 
       if (!listElements || listElements.length === 0) {
+        // Browser context only - does not pollute MCP stdout
         console.error('  No list elements found with any selector');
         return [];
       }
@@ -1656,6 +1654,7 @@ export class BrowserMediumClient {
           }
 
           if (!name) {
+            // Browser context only - does not pollute MCP stdout
             console.error(`  List ${index}: No name found, skipping`);
             return; // Skip if no name
           }
@@ -1676,6 +1675,7 @@ export class BrowserMediumClient {
           }
 
           if (!listUrl) {
+            // Browser context only - does not pollute MCP stdout
             console.error(`  List "${name}": No URL found, skipping`);
             return;
           }
@@ -1687,6 +1687,7 @@ export class BrowserMediumClient {
           }
 
           if (!listId || seenIds.has(listId)) {
+            // Browser context only - does not pollute MCP stdout
             console.error(`  List "${name}": Duplicate or no ID, skipping`);
             return; // Skip duplicates
           }
@@ -1718,6 +1719,7 @@ export class BrowserMediumClient {
             url: listUrl || `https://medium.com/list/${listId}`
           });
         } catch (error) {
+          // Browser context only - does not pollute MCP stdout
           console.error('Error extracting list:', error);
         }
       });
