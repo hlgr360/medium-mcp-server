@@ -369,25 +369,28 @@ SQLite (ADR-001) worked initially but doesn't scale...
 
 **Two common formats**:
 
-1. **Number-based** (recommended for simplicity):
+1. **Date-based** (RECOMMENDED - shows when decision was made):
+   ```
+   ADR_YYYYMMDD_NN_description.md
+   ADR_20250131_01_use_fixture_tests.md
+   ```
+   - ✅ Shows when decided (date in filename)
+   - ✅ Sortable by date
+   - ✅ Self-documenting (no need to check git history)
+   - ❌ More verbose
+
+2. **Number-based** (alternative - simpler but less context):
    ```
    001-description.md
    002-description.md
    ```
    - ✅ Simple, clean
    - ✅ Easy to reference
-   - ❌ Doesn't show date
-
-2. **Date-based** (recommended for transparency):
-   ```
-   ADR_YYYYMMDD_NN_description.md
-   ADR_20250131_01_use_fixture_tests.md
-   ```
-   - ✅ Shows when decided
-   - ✅ Sortable by date
-   - ❌ More verbose
+   - ❌ Doesn't show date (need git history)
 
 **Choose one format and stick to it**. Document your choice in `docs/adr/README.md`.
+
+**Recommendation**: Use date-based format for better historical context and transparency.
 
 ### ADR Discovery
 

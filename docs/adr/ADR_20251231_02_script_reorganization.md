@@ -129,5 +129,5 @@ echo ".debug/" >> .gitignore
 
 - [scripts/README.md](../../scripts/README.md) - Complete scripts documentation
 - Commit `55b6914` - Script reorganization and import path fixes
-- Related: [ADR-003: AGENTS.md Convention](./003-agents-md-convention.md) - Part of documentation restructuring
+- Related: [ADR-003: AGENTS.md Convention](./ADR_20251231_03_agents_md_convention.md) - Part of documentation restructuring
 - GitHub Issue: None (proactive improvement)

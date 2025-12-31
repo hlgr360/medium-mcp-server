@@ -119,4 +119,4 @@ industry-standard convention for universal AI assistant documentation.
 - [CLAUDE.md](../../CLAUDE.md) - Redirect with explanation
 - [Reddit Discussion](https://www.reddit.com/r/GithubCopilot/comments/1nee01w/agentsmd_vs_claudemd/) - Community convention
 - Commit `6eb90b8` - AGENTS.md migration
-- Related: [ADR-002: Script Reorganization](./002-script-reorganization.md) - Part of documentation restructuring
+- Related: [ADR-002: Script Reorganization](./ADR_20251231_02_script_reorganization.md) - Part of documentation restructuring

@@ -22,27 +22,28 @@ This is especially valuable for AI coding assistants who need to understand proj
 
 ## Naming Convention
 
-**This project uses the number-based format**:
+**This project uses the date-based format**:
 
 ```
-###-description-in-kebab-case.md
+ADR_YYYYMMDD_NN_description.md
 
 Examples:
-001-fixture-based-testing.md
-002-script-reorganization.md
-003-agents-md-convention.md
+ADR_20251231_01_fixture_based_testing.md
+ADR_20251231_02_script_reorganization.md
+ADR_20251231_03_agents_md_convention.md
 ```
 
 **Why this format**:
-- ✅ Simple and clean
-- ✅ Easy to reference in code/docs (`ADR-001`)
-- ✅ Sequential numbering shows order of decisions
-- ❌ Doesn't show decision date (use git history or check file)
+- ✅ Shows when decision was made (date in filename)
+- ✅ Sortable by date
+- ✅ Sequential numbering per day (NN)
+- ✅ Self-documenting (no need to check git history for date)
+- ❌ More verbose than simple number format
 
 **Alternative format** (not used in this project):
 ```
-ADR_YYYYMMDD_NN_description.md    # Date-based format
-ADR_20250131_01_fixture_tests.md  # Example
+###-description.md           # Number-based format
+001-fixture-based-testing.md # Example
 ```
 
 See [DEVELOPMENT.md](../conventions/DEVELOPMENT.md#adr-naming-conventions) for both formats and trade-offs.
@@ -51,11 +52,11 @@ See [DEVELOPMENT.md](../conventions/DEVELOPMENT.md#adr-naming-conventions) for b
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
-| [ADR-001](./001-fixture-based-testing.md) | Use Fixture-Based Testing for HTML Parsers | ✅ Accepted | 2025-12-31 |
-| [ADR-002](./002-script-reorganization.md) | Reorganize Scripts into Subdirectories | ✅ Accepted | 2025-12-31 |
-| [ADR-003](./003-agents-md-convention.md) | Adopt AGENTS.md Convention for AI Guidance | ✅ Accepted | 2025-12-31 |
-| [ADR-004](./004-semantic-logging.md) | Use Custom Logger with Semantic Levels | ✅ Accepted | 2025-12-31 |
-| [ADR-005](./005-selector-fallback-strategy.md) | Use Selector Fallback Arrays for Resilience | ✅ Accepted | 2025-12-31 |
+| [ADR-001](./ADR_20251231_01_fixture_based_testing.md) | Use Fixture-Based Testing for HTML Parsers | ✅ Accepted | 2025-12-31 |
+| [ADR-002](./ADR_20251231_02_script_reorganization.md) | Reorganize Scripts into Subdirectories | ✅ Accepted | 2025-12-31 |
+| [ADR-003](./ADR_20251231_03_agents_md_convention.md) | Adopt AGENTS.md Convention for AI Guidance | ✅ Accepted | 2025-12-31 |
+| [ADR-004](./ADR_20251231_04_semantic_logging.md) | Use Custom Logger with Semantic Levels | ✅ Accepted | 2025-12-31 |
+| [ADR-005](./ADR_20251231_05_selector_fallback_strategy.md) | Use Selector Fallback Arrays for Resilience | ✅ Accepted | 2025-12-31 |
 
 ## ADR Lifecycle
 
@@ -119,17 +120,22 @@ SQLite (ADR-001) worked initially but doesn't scale for production...
 When making significant architectural decisions:
 
 1. Copy the template below
-2. Number sequentially (ADR-006, ADR-007, etc.)
-3. Use kebab-case for filename: `###-short-title.md`
+2. Use today's date and next sequential number for the day
+3. Format: `ADR_YYYYMMDD_NN_description.md` (underscores for description)
 4. Update the index above
 5. Commit with message: `docs: Add ADR-### - Title`
+
+**Example**: On 2025-01-15, creating first ADR of the day:
+- Filename: `ADR_20250115_01_add_caching_layer.md`
+- Title in file: `# ADR-006: Add Caching Layer`
+- Index entry: `[ADR-006](./ADR_20250115_01_add_caching_layer.md)`
 
 ### ADR Template
 
 ```markdown
 # ADR-###: Title in Imperative Mood
 
-**Status**: Proposed | Accepted | Deprecated | Superseded by [ADR-###](./###-title.md)
+**Status**: Proposed | Accepted | Deprecated | Superseded by [ADR-###](./ADR_YYYYMMDD_NN_title.md)
 
 **Date**: YYYY-MM-DD
 

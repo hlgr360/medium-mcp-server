@@ -189,4 +189,4 @@ await page.click('.xyz123');
 - [CONTRIBUTING.md#browser-automation-guidelines](../../CONTRIBUTING.md#browser-automation-guidelines) - Selector examples
 - [scripts/README.md#debug-scripts](../../scripts/README.md#debug-scripts) - Debug tools
 - Commit `c6f5832` - Selector fallback strategy
-- Related: [ADR-002: Script Reorganization](./002-script-reorganization.md) - Debug tools organization
+- Related: [ADR-002: Script Reorganization](./ADR_20251231_02_script_reorganization.md) - Debug tools organization

@@ -148,4 +148,4 @@ export const logger = new Logger();
 - [src/logger.ts](../../src/logger.ts) - Logger implementation
 - [AGENTS.md#log-levels](../../AGENTS.md#development-conventions) - Quick reference
 - Commit `c6f5832` - Logger migration
-- Related: [ADR-001: Fixture-Based Testing](./001-fixture-based-testing.md) - Clean test output enables fixture tests
+- Related: [ADR-001: Fixture-Based Testing](./ADR_20251231_01_fixture_based_testing.md) - Clean test output enables fixture tests

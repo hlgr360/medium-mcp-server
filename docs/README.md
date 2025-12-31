@@ -25,11 +25,11 @@ Comprehensive documentation for Medium MCP Server.
 
 **Architecture Decision Records** (Why Decisions Were Made):
 - [ADR Index](./adr/README.md) - All ADRs with quick navigation
-- [ADR-001: Fixture-Based Testing](./adr/001-fixture-based-testing.md) - Why we use HTML snapshots
-- [ADR-002: Script Reorganization](./adr/002-script-reorganization.md) - Why scripts are in subdirectories
-- [ADR-003: AGENTS.md Convention](./adr/003-agents-md-convention.md) - Why AGENTS.md instead of CLAUDE.md
-- [ADR-004: Semantic Logging](./adr/004-semantic-logging.md) - Why custom Logger with levels
-- [ADR-005: Selector Fallback Strategy](./adr/005-selector-fallback-strategy.md) - Why selector arrays
+- [ADR-001: Fixture-Based Testing](./adr/ADR_20251231_01_fixture_based_testing.md) - Why we use HTML snapshots
+- [ADR-002: Script Reorganization](./adr/ADR_20251231_02_script_reorganization.md) - Why scripts are in subdirectories
+- [ADR-003: AGENTS.md Convention](./adr/ADR_20251231_03_agents_md_convention.md) - Why AGENTS.md instead of CLAUDE.md
+- [ADR-004: Semantic Logging](./adr/ADR_20251231_04_semantic_logging.md) - Why custom Logger with levels
+- [ADR-005: Selector Fallback Strategy](./adr/ADR_20251231_05_selector_fallback_strategy.md) - Why selector arrays
 
 **Development Conventions** (Reusable Standards):
 - [Logging Best Practices](./conventions/LOGGING.md)
