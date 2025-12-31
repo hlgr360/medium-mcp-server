@@ -537,8 +537,10 @@ medium-mcp-server/
 │       └── capture-fixtures.ts       # Capture HTML snapshots for testing
 ├── docs/                             # Documentation
 │   ├── README.md                     # Documentation navigation guide
-│   └── conventions/                  # Reusable development conventions
-│       ├── README.md                 # Conventions overview
+│   ├── adr/                          # Architecture Decision Records
+│   └── best-practices/               # Reusable development best practices
+│       ├── README.md                 # Best practices overview
+│       ├── DEVELOPMENT.md            # Git workflow, quality standards
 │       ├── LOGGING.md                # Logging best practices
 │       ├── TESTING.md                # Testing strategy & patterns
 │       └── TYPESCRIPT.md             # TypeScript guidelines

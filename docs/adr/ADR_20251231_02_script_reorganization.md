@@ -76,7 +76,7 @@ scripts/
 - ⚠️ **Extra directory depth**: `npx ts-node scripts/debug/debug-login.ts` (longer path)
 
 ### Neutral
-- 📝 **Navigation READMEs**: Added 3 README files for navigation (scripts/, docs/, docs/conventions/)
+- 📝 **Navigation READMEs**: Added 3 README files for navigation (scripts/, docs/, docs/best-practices/)
 - 📝 **Output standardization**: All debug scripts now output to `.debug/` consistently
 - 📝 **Config updates**: Updated `playwright.config.ts` globalSetup path
 

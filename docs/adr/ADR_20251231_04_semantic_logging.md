@@ -69,8 +69,8 @@ class Logger {
 - ⚠️ **Verbosity**: `logger.info(...)` is longer than `console.log(...)`
 
 ### Neutral
-- 📝 **Documentation**: Created `docs/conventions/LOGGING.md` with examples
-- 📝 **Convention**: Documented when to use each log level
+- 📝 **Documentation**: Created `docs/best-practices/LOGGING.md` with examples
+- 📝 **Best Practice**: Documented when to use each log level
 - 📝 **Portability**: Logger class designed to be copied to other projects
 
 ## Implementation Notes
@@ -144,7 +144,7 @@ export const logger = new Logger();
 
 ## References
 
-- [docs/conventions/LOGGING.md](../conventions/LOGGING.md) - Complete logging documentation
+- [docs/best-practices/LOGGING.md](../best-practices/LOGGING.md) - Complete logging documentation
 - [src/logger.ts](../../src/logger.ts) - Logger implementation
 - [AGENTS.md#log-levels](../../AGENTS.md#development-conventions) - Quick reference
 - Commit `c6f5832` - Logger migration

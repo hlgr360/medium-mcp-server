@@ -91,7 +91,7 @@ git commit -m "docs: Migrate to AGENTS.md convention for universal AI assistant 
 - `CONTRIBUTING.md` - 7 references
 - `README.md` - 2 references
 - `docs/README.md` - 10 references
-- `docs/conventions/README.md` - 3 references
+- `docs/best-practices/README.md` - 3 references
 - `ARCHITECTURE.md` - 1 reference
 - `scripts/README.md` - 2 references
 

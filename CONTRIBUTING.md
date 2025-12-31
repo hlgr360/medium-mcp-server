@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Medium MCP Server! This project helps developers interact with Medium through browser automation since Medium's API is no longer available for new users.
 
-**For AI Agents**: This guide is designed for both human and AI contributors (like Claude Code). Follow the conventions strictly and reference the detailed documentation in `docs/conventions/` for logging, testing, and TypeScript best practices.
+**For AI Agents**: This guide is designed for both human and AI contributors (like Claude Code). Follow the conventions strictly and reference the detailed documentation in `docs/best-practices/` for logging, testing, and TypeScript best practices.
 
 ## 🤝 How to Contribute
 
@@ -45,26 +45,26 @@ Thank you for your interest in contributing to Medium MCP Server! This project h
 - Check existing issues and PRs to avoid duplication
 - For major changes, open an issue first to discuss the approach
 - **Read AGENTS.md thoroughly** - contains essential project context and patterns
-- Review relevant conventions in `docs/conventions/` (Logging, Testing, TypeScript)
+- Review relevant best practices in `docs/best-practices/` (Logging, Testing, TypeScript)
 - **AI Agents**: Always use EnterPlanMode for non-trivial changes before implementing
 
 #### Development Conventions
 
-This project follows standardized conventions documented in `docs/conventions/`:
+This project follows standardized best practices documented in `docs/best-practices/`:
 
-📘 **[Logging Best Practices](./docs/conventions/LOGGING.md)** - REQUIRED READING
+📘 **[Logging Best Practices](./docs/best-practices/LOGGING.md)** - REQUIRED READING
 - Use custom Logger class with semantic log levels (TRACE, DEBUG, INFO, WARN, ERROR)
 - All logs to stderr (MCP protocol safety)
 - Automatic test suppression (no `if (!testing)` checks needed)
 - **Example**: `logger.info('Operation started')` not `console.log`
 
-📘 **[Testing Best Practices](./docs/conventions/TESTING.md)** - REQUIRED READING
+📘 **[Testing Best Practices](./docs/best-practices/TESTING.md)** - REQUIRED READING
 - Multi-layered: Unit (Jest) → Integration (Jest + fixtures) → E2E (Playwright)
 - Fixture-based testing for parsers (fast, deterministic)
 - Coverage philosophy: 47% overall is appropriate for browser automation
 - See test organization in AGENTS.md
 
-📘 **[TypeScript Best Practices](./docs/conventions/TYPESCRIPT.md)** - REQUIRED READING
+📘 **[TypeScript Best Practices](./docs/best-practices/TYPESCRIPT.md)** - REQUIRED READING
 - Strict mode enabled
 - Zero `any` types (use `unknown` and type guards)
 - Explicit return types for public APIs
@@ -166,7 +166,7 @@ chore/update-playwright
 
 2. **Make Changes**
    - Write clean, well-documented code
-   - Follow conventions in `docs/conventions/`
+   - Follow best practices in `docs/best-practices/`
    - Add/update tests (unit + integration + E2E)
    - Update fixtures if changing parsers: `npx ts-node scripts/utils/capture-fixtures.ts`
    - Update AGENTS.md if adding new selectors or tools
@@ -225,7 +225,7 @@ chore/update-playwright
 #### Testing
 - [ ] All unit tests pass (`npm run test:unit`)
 - [ ] All E2E tests pass (`npm test`)
-- [ ] **Zero warnings** in test output (see [Testing Conventions](./docs/conventions/TESTING.md))
+- [ ] **Zero warnings** in test output (see [Testing Best Practices](./docs/best-practices/TESTING.md))
 - [ ] New tests added for changes
 - [ ] Fixtures updated if parsers changed (`npx ts-node scripts/utils/capture-fixtures.ts`)
 
@@ -399,7 +399,7 @@ test('should retrieve articles', async ({ page }) => {
 
 **What We Look For**:
 - ✅ Code works with current Medium website (tested with E2E)
-- ✅ Follows conventions in `docs/conventions/` (Logging, Testing, TypeScript)
+- ✅ Follows best practices in `docs/best-practices/` (Logging, Testing, TypeScript)
 - ✅ Uses Logger class (not `console.log`)
 - ✅ Zero `any` types (strict TypeScript)
 - ✅ Proper error handling with actionable messages
@@ -425,7 +425,7 @@ test('should retrieve articles', async ({ page }) => {
 
 **Stuck on Something?**
 - **Read AGENTS.md first** - contains debugging workflows and debug scripts
-- Check conventions in `docs/conventions/` for logging, testing, TypeScript
+- Check best practices in `docs/best-practices/` for logging, testing, TypeScript
 - Look at existing code for patterns (e.g., similar tool implementations)
 - Run debug scripts in `scripts/` to understand selector issues
 - Open a draft PR with questions and context
@@ -522,7 +522,7 @@ scripts/
 - [ ] All tests pass (`npm run test:all` - 149 tests)
 - [ ] TypeScript strict mode (zero `any` types)
 - [ ] Uses Logger class (not `console.log`)
-- [ ] Follows conventions in `docs/conventions/`
+- [ ] Follows best practices in `docs/best-practices/`
 - [ ] No sensitive data (API keys, sessions, personal info) in code
 
 **Testing**:
@@ -744,13 +744,14 @@ Your contributions help make AI-powered content publishing more accessible to de
 
 **Questions?**
 - Check [AGENTS.md](./AGENTS.md) for comprehensive project documentation
-- Check `docs/conventions/` for coding standards
+- Check `docs/best-practices/` for coding standards
 - Open an issue for bugs or feature requests
 - Start a discussion for questions or ideas
 
 **For AI Agents**:
 - Follow this guide strictly
 - Reference AGENTS.md for project context
+- Read [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) to understand documentation structure
 - Use EnterPlanMode for planning
 - Include fragility assessments
 - Generate comprehensive tests

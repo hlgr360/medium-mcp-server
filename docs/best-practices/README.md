@@ -1,19 +1,19 @@
-# Development Conventions
+# Development Best Practices
 
-This directory contains reusable development conventions designed for the Medium MCP Server project but applicable to any TypeScript project.
+This directory contains reusable development best practices designed for the Medium MCP Server project but applicable to any TypeScript project.
 
 ---
 
 ## Overview
 
-These conventions were developed through building a browser automation MCP server with complex testing needs. They're designed to be:
+These best practices were developed through building a browser automation MCP server with complex testing needs. They're designed to be:
 - **Project-agnostic**: Can be copied to any TypeScript project
-- **Self-contained**: Each convention is fully documented
+- **Self-contained**: Each best practice is fully documented
 - **Practical**: Based on real-world experience, not theory
 
 ---
 
-## Conventions
+## Best Practices
 
 ### 📘 [Logging Best Practices](./LOGGING.md)
 
@@ -113,19 +113,19 @@ git push origin fix/update-selector
 
 ---
 
-## Using These Conventions in Other Projects
+## Using These Best Practices in Other Projects
 
 ### Option 1: Direct Copy
 ```bash
-# Copy entire conventions directory
-cp -r docs/conventions/ ../my-project/docs/
+# Copy entire best-practices directory
+cp -r docs/best-practices/ ../my-project/docs/
 
-# Copy individual convention
-cp docs/conventions/LOGGING.md ../my-project/docs/
+# Copy individual best practice
+cp docs/best-practices/LOGGING.md ../my-project/docs/
 ```
 
 ### Option 2: Reference as Template
-- Read the convention
+- Read the best practice
 - Adapt to your project's needs
 - Keep the core principles
 
@@ -133,11 +133,11 @@ cp docs/conventions/LOGGING.md ../my-project/docs/
 
 ## Project-Specific Implementations
 
-These conventions are **standards**. For project-specific implementations, see:
+These best practices are **standards**. For project-specific implementations, see:
 
-- [AGENTS.md](../../AGENTS.md) - How Medium MCP Server applies these conventions
-- [ARCHITECTURE.md](../../ARCHITECTURE.md) - Architecture decisions based on conventions
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines referencing conventions
+- [AGENTS.md](../../AGENTS.md) - How Medium MCP Server applies these best practices
+- [ARCHITECTURE.md](../../ARCHITECTURE.md) - Architecture decisions based on best practices
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines referencing best practices
 
 **Example**:
 - [TESTING.md](./TESTING.md) defines multi-layered testing strategy (standard)
@@ -150,9 +150,10 @@ These conventions are **standards**. For project-specific implementations, see:
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - How to contribute to this project
 - [AGENTS.md](../../AGENTS.md) - Complete project guide
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) - Technical architecture
+- [DOCUMENTATION_GUIDE.md](../DOCUMENTATION_GUIDE.md) - Documentation structure and organization
 
 ---
 
 ## License
 
-These conventions are part of the Medium MCP Server project and are licensed under the MIT License. You are free to use, modify, and distribute them in your own projects.
+These best practices are part of the Medium MCP Server project and are licensed under the MIT License. You are free to use, modify, and distribute them in your own projects.

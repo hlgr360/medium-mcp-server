@@ -2,6 +2,8 @@
 
 This file provides guidance to AI coding assistants (Claude Code, GitHub Copilot, Cursor, etc.) when working with code in this repository.
 
+**Documentation Structure**: See [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) for how documentation is organized (two-tier architecture: universal best practices vs project-specific guidance).
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
@@ -190,13 +192,13 @@ For detailed architecture, see [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ### Development Conventions
 
-This project follows standardized conventions for logging, testing, and TypeScript that can be reused across projects:
+This project follows standardized best practices for logging, testing, and TypeScript that can be reused across projects:
 
-📘 **[Logging Best Practices](./docs/conventions/LOGGING.md)** - Custom Logger class with semantic log levels, stderr routing for MCP protocol safety, automatic test suppression
+📘 **[Logging Best Practices](./docs/best-practices/LOGGING.md)** - Custom Logger class with semantic log levels, stderr routing for MCP protocol safety, automatic test suppression
 
-📘 **[Testing Best Practices](./docs/conventions/TESTING.md)** - Multi-layered testing strategy, coverage philosophy, fixture-based testing patterns
+📘 **[Testing Best Practices](./docs/best-practices/TESTING.md)** - Multi-layered testing strategy, coverage philosophy, fixture-based testing patterns
 
-📘 **[TypeScript Best Practices](./docs/conventions/TYPESCRIPT.md)** - Type safety guidelines, eliminating `any` types, strict mode configuration
+📘 **[TypeScript Best Practices](./docs/best-practices/TYPESCRIPT.md)** - Type safety guidelines, eliminating `any` types, strict mode configuration
 
 **Quick Reference - Log Levels**:
 - **TRACE** 🔍: Extremely detailed diagnostics (DOM selectors, redirects)
@@ -205,11 +207,11 @@ This project follows standardized conventions for logging, testing, and TypeScri
 - **WARN** ⚠️: Warnings (session expired, timeouts)
 - **ERROR** ❌: Actual errors (catch blocks, failures)
 
-See [docs/conventions/LOGGING.md](./docs/conventions/LOGGING.md) for complete logging documentation.
+See [docs/best-practices/LOGGING.md](./docs/best-practices/LOGGING.md) for complete logging documentation.
 
 ### Testing Strategy (Project-Specific)
 
-**See [docs/conventions/TESTING.md](./docs/conventions/TESTING.md) for general testing best practices.**
+**See [docs/best-practices/TESTING.md](./docs/best-practices/TESTING.md) for general testing best practices.**
 
 This section covers project-specific test organization, counts, and workflows.
 
@@ -754,3 +756,4 @@ async getArticles(): Promise<Article[]> {
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed technical architecture
 - [README.md](./README.md) - User documentation
 - [tests/fixtures/README.md](./tests/fixtures/README.md) - Fixture usage guide
+- [docs/DOCUMENTATION_GUIDE.md](./docs/DOCUMENTATION_GUIDE.md) - Documentation structure and organization

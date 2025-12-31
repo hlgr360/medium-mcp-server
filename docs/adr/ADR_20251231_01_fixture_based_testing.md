@@ -91,6 +91,6 @@ npm run test:unit -- tests/integration/
 ## References
 
 - [tests/fixtures/README.md](../../tests/fixtures/README.md) - Fixture usage guide
-- [docs/conventions/TESTING.md](../conventions/TESTING.md) - Multi-layer testing strategy
+- [docs/best-practices/TESTING.md](../best-practices/TESTING.md) - Multi-layer testing strategy
 - Commit `c6f5832` - Initial fixture-based testing implementation
 - Related: [ADR-004: Semantic Logging](./ADR_20251231_04_semantic_logging.md) - Fixtures enable quiet test runs

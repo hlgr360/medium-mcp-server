@@ -46,7 +46,7 @@ ADR_20251231_03_agents_md_convention.md
 001-fixture-based-testing.md # Example
 ```
 
-See [DEVELOPMENT.md](../conventions/DEVELOPMENT.md#adr-naming-conventions) for both formats and trade-offs.
+See [DEVELOPMENT.md](../best-practices/DEVELOPMENT.md#adr-naming-conventions) for both formats and trade-offs.
 
 ## ADR Index
 

@@ -22,6 +22,7 @@ Comprehensive documentation for Medium MCP Server.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines, PR process
 - [AGENTS.md](../AGENTS.md) - Complete project guide (for AI agents and developers)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture, design decisions
+- [DOCUMENTATION_GUIDE.md](./DOCUMENTATION_GUIDE.md) - Documentation structure and organization
 
 **Architecture Decision Records** (Why Decisions Were Made):
 - [ADR Index](./adr/README.md) - All ADRs with quick navigation
@@ -31,12 +32,13 @@ Comprehensive documentation for Medium MCP Server.
 - [ADR-004: Semantic Logging](./adr/ADR_20251231_04_semantic_logging.md) - Why custom Logger with levels
 - [ADR-005: Selector Fallback Strategy](./adr/ADR_20251231_05_selector_fallback_strategy.md) - Why selector arrays
 
-**Development Conventions** (Reusable Standards):
-- [Logging Best Practices](./conventions/LOGGING.md)
-- [Testing Best Practices](./conventions/TESTING.md)
-- [TypeScript Best Practices](./conventions/TYPESCRIPT.md)
+**Development Best Practices** (Reusable Standards):
+- [Logging Best Practices](./best-practices/LOGGING.md)
+- [Testing Best Practices](./best-practices/TESTING.md)
+- [TypeScript Best Practices](./best-practices/TYPESCRIPT.md)
+- [Development Workflow](./best-practices/DEVELOPMENT.md)
 
-See [conventions/README.md](./conventions/README.md) for overview.
+See [best-practices/README.md](./best-practices/README.md) for overview.
 
 ---
 
@@ -47,7 +49,7 @@ See [conventions/README.md](./conventions/README.md) for overview.
 - [.env.example](../.env.example) - Environment variables
 
 ### Testing
-- [Testing Conventions](./conventions/TESTING.md) - Multi-layered testing strategy
+- [Testing Best Practices](./best-practices/TESTING.md) - Multi-layered testing strategy
 - [AGENTS.md](../AGENTS.md#testing-strategy) - Project-specific test organization
 - [Test Fixtures](../tests/fixtures/README.md) - Fixture-based testing
 
@@ -73,9 +75,11 @@ See [conventions/README.md](./conventions/README.md) for overview.
 
 **Primary documentation**: [AGENTS.md](../AGENTS.md)
 
+**Documentation structure**: [DOCUMENTATION_GUIDE.md](./DOCUMENTATION_GUIDE.md) - Explains how documentation is organized (two-tier architecture)
+
 **Before making changes**:
 1. Read AGENTS.md thoroughly
-2. Review relevant conventions in `conventions/`
+2. Review relevant best practices in `best-practices/`
 3. **Read ADRs** in `adr/` to understand why decisions were made
 4. Use EnterPlanMode for non-trivial changes
 5. Follow contribution guidelines in CONTRIBUTING.md
@@ -92,7 +96,7 @@ See [conventions/README.md](./conventions/README.md) for overview.
 | New MCP tool | README.md, AGENTS.md, CHANGELOG.md |
 | Selector update | AGENTS.md (Current Selectors section) |
 | Architecture change | ARCHITECTURE.md, AGENTS.md |
-| New convention | docs/conventions/, CONTRIBUTING.md |
+| New best practice | docs/best-practices/, CONTRIBUTING.md |
 | Breaking change | CHANGELOG.md (with migration guide) |
 | Bug fix | CHANGELOG.md |
 | Debug script added | scripts/README.md, AGENTS.md |

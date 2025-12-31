@@ -451,7 +451,7 @@ cat docs/adr/README.md
 **Before making changes**:
 1. Read project's AGENTS.md or equivalent
 2. Review relevant ADRs to understand past decisions
-3. Check conventions/ directory for standards
+3. Check best-practices/ directory for standards
 4. Use EnterPlanMode for non-trivial changes (if available)
 
 **When making changes**:
