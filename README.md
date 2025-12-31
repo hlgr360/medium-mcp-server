@@ -477,9 +477,10 @@ medium-mcp-server/
 ├── src/
 │   ├── index.ts                      # MCP server entry point
 │   ├── browser-client.ts             # Playwright browser automation
+│   ├── logger.ts                     # Custom logging with semantic levels
 │   ├── auth.ts                       # Legacy OAuth (unused)
 │   ├── client.ts                     # Legacy API client (unused)
-│   └── __tests__/                    # Jest test suite
+│   └── __tests__/                    # Jest test suite (82 tests)
 │       ├── unit/                     # Pure unit tests (29 tests)
 │       │   ├── validation.test.ts    # Cookie validation logic
 │       │   ├── cookie-utils.test.ts  # Cookie expiry detection
@@ -489,44 +490,72 @@ medium-mcp-server/
 │       │   └── mcp-tools.test.ts     # MCP tool handlers
 │       └── helpers/                  # Test utilities
 │           ├── mock-playwright.ts    # Playwright mock factory
+│           ├── ensure-fixtures.ts    # Auto-capture fixtures if missing
 │           ├── fixtures.ts           # Test data
 │           └── matchers.ts           # Custom Jest matchers
-├── tests/                            # Playwright E2E & fixture tests
-│   ├── parsers/                      # Standalone parsing modules (NEW)
+├── tests/                            # Playwright E2E & fixture tests (67 tests)
+│   ├── parsers/                      # Standalone parsing modules
 │   │   ├── article-list-parser.ts    # Parse article list HTML
 │   │   ├── article-content-parser.ts # Parse article content HTML
 │   │   ├── feed-parser.ts            # Parse feed HTML
 │   │   └── lists-parser.ts           # Parse lists HTML
-│   ├── fixtures/                     # HTML snapshots for testing (NEW)
+│   ├── fixtures/                     # HTML snapshots for testing (gitignored)
 │   │   ├── article-list.html         # Sample article list page
 │   │   ├── article-content.html      # Sample article content
 │   │   ├── feed.html                 # Sample feed page
 │   │   └── lists.html                # Sample lists page
-│   ├── integration/                  # Fixture-based tests (11 tests, NEW)
-│   │   └── html-parsing.test.ts      # Test parsers against fixtures
+│   ├── integration/                  # Fixture-based tests (31 tests)
+│   │   ├── article-parser.test.ts    # Test article parsing
+│   │   ├── content-parser.test.ts    # Test content parsing
+│   │   ├── feed-parser.test.ts       # Test feed parsing
+│   │   └── list-parser.test.ts       # Test list parsing
+│   ├── helpers/
+│   │   └── ensure-fixtures.ts        # Auto-capture fixtures helper
 │   ├── session-management.spec.ts    # Session persistence E2E
 │   ├── browser-lifecycle.spec.ts     # Browser lifecycle E2E
 │   ├── authentication.spec.ts        # Authentication E2E
-│   └── get-user-articles.spec.ts     # Article retrieval E2E (v1.2)
-├── scripts/
-│   ├── setup-test-session.ts         # Playwright globalSetup (auto-login)
-│   ├── debug-login.ts                # Debug login selector issues
-│   ├── debug-articles.ts             # Debug article page structure
-│   ├── debug-articles-detailed.ts    # Deep article DOM analysis
-│   ├── debug-editor-page.ts          # Editor DOM analysis
-│   ├── debug-lists-page.ts           # Lists page analysis
-│   ├── capture-fixtures.ts           # Capture HTML snapshots for testing
-│   ├── test-get-articles-simple.ts   # Test article retrieval
-│   ├── test-get-lists.ts             # Test reading lists
-│   └── test-feed-all.ts              # Test feed retrieval
-├── dist/                             # Compiled JavaScript output
+│   └── get-user-articles.spec.ts     # Article retrieval E2E
+├── scripts/                          # Development & debugging scripts (33 total)
+│   ├── README.md                     # Scripts documentation & usage guide
+│   ├── debug/                        # Debugging tools (15 scripts)
+│   │   ├── debug-login.ts            # Debug login selector issues
+│   │   ├── debug-articles.ts         # Debug article page structure
+│   │   ├── debug-articles-detailed.ts # Deep article DOM analysis
+│   │   ├── debug-editor-page.ts      # Editor DOM analysis
+│   │   ├── debug-editor-wait.ts      # Editor wait strategies
+│   │   ├── debug-lists-page.ts       # Lists page structure analysis
+│   │   ├── debug-publish-flow.ts     # Complete publish workflow
+│   │   └── ... (8 more debug scripts)
+│   ├── test/                         # Manual test scripts (16 scripts)
+│   │   ├── test-get-articles-simple.ts # Quick article retrieval test
+│   │   ├── test-get-lists.ts         # Test reading lists
+│   │   ├── test-feed-all.ts          # Test feed retrieval
+│   │   ├── test-publish-article.ts   # Test draft creation
+│   │   └── ... (12 more test scripts)
+│   └── utils/                        # Utility scripts (2 scripts)
+│       ├── setup-test-session.ts     # Playwright globalSetup (auto-login)
+│       └── capture-fixtures.ts       # Capture HTML snapshots for testing
+├── docs/                             # Documentation
+│   ├── README.md                     # Documentation navigation guide
+│   └── conventions/                  # Reusable development conventions
+│       ├── README.md                 # Conventions overview
+│       ├── LOGGING.md                # Logging best practices
+│       ├── TESTING.md                # Testing strategy & patterns
+│       └── TYPESCRIPT.md             # TypeScript guidelines
+├── .debug/                           # Debug script output (gitignored)
+│   ├── screenshots/                  # Debug screenshots
+│   └── analysis/                     # DOM analysis JSON files
+├── dist/                             # Compiled JavaScript output (gitignored)
 ├── medium-session.json               # Saved login session (gitignored)
 ├── package.json                      # Dependencies and scripts
 ├── tsconfig.json                     # TypeScript configuration
 ├── jest.config.js                    # Jest test configuration
 ├── playwright.config.ts              # Playwright E2E configuration
-├── AGENTS.md                         # AI development guide (concise)
+├── AGENTS.md                         # AI assistant guidance (universal)
+├── CLAUDE.md                         # Pointer to AGENTS.md
 ├── ARCHITECTURE.md                   # Technical deep-dive (detailed)
+├── CONTRIBUTING.md                   # Contribution guidelines
+├── CHANGELOG.md                      # Version history
 └── README.md                         # This file (user-facing)
 ```
 
