@@ -138,12 +138,12 @@ Use these to manually test functionality after changes.
 5. **Update fixtures**: `npx ts-node scripts/utils/capture-fixtures.ts`
 6. **Run tests**: `npm run test:all`
 
-See [CLAUDE.md](../CLAUDE.md) debugging workflow section for complete details.
+See [AGENTS.md](../AGENTS.md) debugging workflow section for complete details.
 
 ---
 
 ## See Also
 
-- [CLAUDE.md](../CLAUDE.md) - Complete project guide with debugging workflow
+- [AGENTS.md](../AGENTS.md) - Complete project guide with debugging workflow
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture

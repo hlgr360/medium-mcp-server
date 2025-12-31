@@ -96,20 +96,20 @@ cp docs/conventions/LOGGING.md ../my-project/docs/
 
 These conventions are **standards**. For project-specific implementations, see:
 
-- [CLAUDE.md](../../CLAUDE.md) - How Medium MCP Server applies these conventions
+- [AGENTS.md](../../AGENTS.md) - How Medium MCP Server applies these conventions
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) - Architecture decisions based on conventions
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines referencing conventions
 
 **Example**:
 - [TESTING.md](./TESTING.md) defines multi-layered testing strategy (standard)
-- [CLAUDE.md](../../CLAUDE.md#testing-strategy) shows how Medium MCP Server implements it (149 tests, 4 layers)
+- [AGENTS.md](../../AGENTS.md#testing-strategy) shows how Medium MCP Server implements it (149 tests, 4 layers)
 
 ---
 
 ## See Also
 
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - How to contribute to this project
-- [CLAUDE.md](../../CLAUDE.md) - Complete project guide
+- [AGENTS.md](../../AGENTS.md) - Complete project guide
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) - Technical architecture
 
 ---

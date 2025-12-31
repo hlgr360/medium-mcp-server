@@ -394,7 +394,7 @@ When Medium updates their website, selectors break. Here's how to fix them:
 5. **Run the corresponding test** to verify the fix
 6. **Re-capture fixtures**: `npx ts-node scripts/utils/capture-fixtures.ts`
 7. **Run fixture-based tests**: `npm run test:unit -- tests/integration/`
-8. **Update documentation** (README.md, CLAUDE.md) with new selectors
+8. **Update documentation** (README.md, AGENTS.md) with new selectors
 
 #### Debug Scripts by Functionality
 
@@ -525,7 +525,7 @@ medium-mcp-server/
 ├── tsconfig.json                     # TypeScript configuration
 ├── jest.config.js                    # Jest test configuration
 ├── playwright.config.ts              # Playwright E2E configuration
-├── CLAUDE.md                         # AI development guide (concise)
+├── AGENTS.md                         # AI development guide (concise)
 ├── ARCHITECTURE.md                   # Technical deep-dive (detailed)
 └── README.md                         # This file (user-facing)
 ```

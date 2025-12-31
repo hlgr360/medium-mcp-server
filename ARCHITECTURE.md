@@ -339,4 +339,4 @@ When Medium changes UI:
 5. Re-capture fixtures
 6. Run tests
 
-See main CLAUDE.md for full debugging workflow.
+See main AGENTS.md for full debugging workflow.

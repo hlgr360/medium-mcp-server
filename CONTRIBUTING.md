@@ -8,8 +8,8 @@ Thank you for your interest in contributing to Medium MCP Server! This project h
 
 ### Reporting Issues
 - **Bug Reports**: Use GitHub Issues with detailed reproduction steps, error logs, and environment details
-- **Feature Requests**: Describe the use case and expected behavior, assess fragility risks (see CLAUDE.md)
-- **Questions**: Check existing issues and CLAUDE.md first, then open a discussion
+- **Feature Requests**: Describe the use case and expected behavior, assess fragility risks (see AGENTS.md)
+- **Questions**: Check existing issues and AGENTS.md first, then open a discussion
 
 ### Development Setup
 
@@ -44,7 +44,7 @@ Thank you for your interest in contributing to Medium MCP Server! This project h
 #### Before You Start
 - Check existing issues and PRs to avoid duplication
 - For major changes, open an issue first to discuss the approach
-- **Read CLAUDE.md thoroughly** - contains essential project context and patterns
+- **Read AGENTS.md thoroughly** - contains essential project context and patterns
 - Review relevant conventions in `docs/conventions/` (Logging, Testing, TypeScript)
 - **AI Agents**: Always use EnterPlanMode for non-trivial changes before implementing
 
@@ -62,7 +62,7 @@ This project follows standardized conventions documented in `docs/conventions/`:
 - Multi-layered: Unit (Jest) → Integration (Jest + fixtures) → E2E (Playwright)
 - Fixture-based testing for parsers (fast, deterministic)
 - Coverage philosophy: 47% overall is appropriate for browser automation
-- See test organization in CLAUDE.md
+- See test organization in AGENTS.md
 
 📘 **[TypeScript Best Practices](./docs/conventions/TYPESCRIPT.md)** - REQUIRED READING
 - Strict mode enabled
@@ -86,7 +86,7 @@ await page.click('.xyz123');  // Generated class, will break
 ```
 
 **When Selectors Break**:
-1. Use debug scripts in `scripts/` (see CLAUDE.md reference section)
+1. Use debug scripts in `scripts/` (see AGENTS.md reference section)
 2. Add new selectors to BEGINNING of fallback arrays (don't replace)
 3. Update fixtures: `npx ts-node scripts/utils/capture-fixtures.ts`
 4. Document change with comment: `// Updated [date] - Medium changed UI`
@@ -143,7 +143,7 @@ npm run test:unit -- tests/integration/  # Run fixture tests
    - Follow conventions in `docs/conventions/`
    - Add/update tests (unit + integration + E2E)
    - Update fixtures if changing parsers: `npx ts-node scripts/utils/capture-fixtures.ts`
-   - Update CLAUDE.md if adding new selectors or tools
+   - Update AGENTS.md if adding new selectors or tools
    - Update README if adding new user-facing features
 
 3. **Test Thoroughly**
@@ -189,7 +189,7 @@ npm run test:unit -- tests/integration/  # Run fixture tests
 **For Claude Code and Other AI Agents**:
 
 ### Planning Workflow (CRITICAL)
-1. **Always use EnterPlanMode** for non-trivial changes (see CLAUDE.md examples)
+1. **Always use EnterPlanMode** for non-trivial changes (see AGENTS.md examples)
 2. **Read before editing**: Use Read tool on target files, understand existing patterns
 3. **Search comprehensively**: Use Task tool with Explore agent for codebase exploration
 4. **Plan before implementing**: Identify affected files, selectors, tests
@@ -265,7 +265,7 @@ test('should retrieve articles', async ({ page }) => {
 - **Fixture Updates**: After selector fixes (`capture-fixtures.ts`)
 - **Error Handling**: Better error messages with actionable context
 - **Test Coverage**: Add missing unit/integration tests
-- **Documentation**: Update CLAUDE.md with new selectors/patterns
+- **Documentation**: Update AGENTS.md with new selectors/patterns
 
 **Medium Impact**:
 - **Performance**: Reduce browser launch overhead
@@ -307,7 +307,7 @@ test('should retrieve articles', async ({ page }) => {
 - ✅ Complete test coverage (unit + integration + E2E)
 - ✅ Fixtures updated if parsers changed
 - ✅ No breaking changes to existing MCP tools (or documented migration)
-- ✅ CLAUDE.md updated with new selectors/patterns
+- ✅ AGENTS.md updated with new selectors/patterns
 - ✅ README updated for user-facing changes
 - ✅ Commit messages follow conventional commits
 
@@ -325,7 +325,7 @@ test('should retrieve articles', async ({ page }) => {
 ## 💬 Getting Help
 
 **Stuck on Something?**
-- **Read CLAUDE.md first** - contains debugging workflows and debug scripts
+- **Read AGENTS.md first** - contains debugging workflows and debug scripts
 - Check conventions in `docs/conventions/` for logging, testing, TypeScript
 - Look at existing code for patterns (e.g., similar tool implementations)
 - Run debug scripts in `scripts/` to understand selector issues
@@ -389,7 +389,7 @@ scripts/
 - Multiple fallbacks per element (`data-testid` → `aria-label` → class)
 - Add new selectors to beginning, keep old as fallbacks
 - Debug scripts in `scripts/` to analyze UI changes
-- Documented in CLAUDE.md reference section
+- Documented in AGENTS.md reference section
 
 ### Adding New Features
 
@@ -399,14 +399,14 @@ scripts/
 3. **Parsing Logic**: Extract to `tests/parsers/` (if applicable)
 4. **Tests**: Unit (validation) + Integration (fixtures/mocks) + E2E
 5. **Fixtures**: Capture HTML with `scripts/utils/capture-fixtures.ts`
-6. **Documentation**: Update CLAUDE.md, README, ARCHITECTURE.md
+6. **Documentation**: Update AGENTS.md, README, ARCHITECTURE.md
 
 **For Selector Updates**:
 1. **Debug**: Run `scripts/debug/debug-*.ts` to analyze UI
 2. **Update**: Add to beginning of fallback arrays in `browser-client.ts`
 3. **Fixtures**: Re-capture with `scripts/utils/capture-fixtures.ts`
 4. **Test**: Run fixture tests, then E2E tests
-5. **Document**: Add comment with date, update CLAUDE.md reference
+5. **Document**: Add comment with date, update AGENTS.md reference
 
 **For Parsers**:
 1. **Create**: Add standalone parser in `tests/parsers/`
@@ -435,7 +435,7 @@ scripts/
 - [ ] MCP tools return proper JSON responses
 
 **Documentation**:
-- [ ] CLAUDE.md updated with new selectors (if applicable)
+- [ ] AGENTS.md updated with new selectors (if applicable)
 - [ ] README updated for user-facing features
 - [ ] ARCHITECTURE.md updated for architectural changes
 - [ ] Code comments for complex logic
@@ -498,7 +498,7 @@ scripts/
 - Fixed session validation timeout (#125)
 
 ### Documentation
-- Updated CLAUDE.md with new selectors
+- Updated AGENTS.md with new selectors
 - Added fixture-based testing guide
 
 ### Contributors
@@ -630,7 +630,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) fo
 - Type safety improvements
 
 **Features** (Assess Fragility First):
-- Consult CLAUDE.md fragility assessment before implementing
+- Consult AGENTS.md fragility assessment before implementing
 - Prefer stable `data-testid` selectors
 - Avoid modal popups and generated class names
 - Document maintenance expectations
@@ -644,14 +644,14 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) fo
 Your contributions help make AI-powered content publishing more accessible to developers worldwide while navigating the challenges of browser automation.
 
 **Questions?**
-- Check [CLAUDE.md](./CLAUDE.md) for comprehensive project documentation
+- Check [AGENTS.md](./AGENTS.md) for comprehensive project documentation
 - Check `docs/conventions/` for coding standards
 - Open an issue for bugs or feature requests
 - Start a discussion for questions or ideas
 
 **For AI Agents**:
 - Follow this guide strictly
-- Reference CLAUDE.md for project context
+- Reference AGENTS.md for project context
 - Use EnterPlanMode for planning
 - Include fragility assessments
 - Generate comprehensive tests

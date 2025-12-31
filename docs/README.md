@@ -20,7 +20,7 @@ Comprehensive documentation for Medium MCP Server.
 
 **Essential Reading**:
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines, PR process
-- [CLAUDE.md](../CLAUDE.md) - Complete project guide (for Claude Code and developers)
+- [AGENTS.md](../AGENTS.md) - Complete project guide (for Claude Code and developers)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Technical architecture, design decisions
 
 **Development Conventions** (Reusable Standards):
@@ -40,17 +40,17 @@ See [conventions/README.md](./conventions/README.md) for overview.
 
 ### Testing
 - [Testing Conventions](./conventions/TESTING.md) - Multi-layered testing strategy
-- [CLAUDE.md](../CLAUDE.md#testing-strategy) - Project-specific test organization
+- [AGENTS.md](../AGENTS.md#testing-strategy) - Project-specific test organization
 - [Test Fixtures](../tests/fixtures/README.md) - Fixture-based testing
 
 ### Debugging
-- [CLAUDE.md](../CLAUDE.md#debugging-workflow) - Complete debugging workflow
+- [AGENTS.md](../AGENTS.md#debugging-workflow) - Complete debugging workflow
 - [Debug Scripts](../scripts/README.md#debug-scripts-when-medium-ui-changes) - Selector debugging tools
-- [Current Selectors](../CLAUDE.md#current-selectors) - Selector reference
+- [Current Selectors](../AGENTS.md#current-selectors) - Selector reference
 
 ### Architecture
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - System design, component interactions
-- [CLAUDE.md](../CLAUDE.md#architecture) - Architecture overview
+- [AGENTS.md](../AGENTS.md#architecture) - Architecture overview
 
 ### Contributing
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Full contribution guide
@@ -61,10 +61,10 @@ See [conventions/README.md](./conventions/README.md) for overview.
 
 ## For AI Agents (Claude Code)
 
-**Primary documentation**: [CLAUDE.md](../CLAUDE.md)
+**Primary documentation**: [AGENTS.md](../AGENTS.md)
 
 **Before making changes**:
-1. Read CLAUDE.md thoroughly
+1. Read AGENTS.md thoroughly
 2. Review relevant conventions in `conventions/`
 3. Use EnterPlanMode for non-trivial changes
 4. Follow contribution guidelines in CONTRIBUTING.md
@@ -77,12 +77,12 @@ See [conventions/README.md](./conventions/README.md) for overview.
 
 | Change Type | Update These Docs |
 |-------------|-------------------|
-| New MCP tool | README.md, CLAUDE.md, CHANGELOG.md |
-| Selector update | CLAUDE.md (Current Selectors section) |
-| Architecture change | ARCHITECTURE.md, CLAUDE.md |
+| New MCP tool | README.md, AGENTS.md, CHANGELOG.md |
+| Selector update | AGENTS.md (Current Selectors section) |
+| Architecture change | ARCHITECTURE.md, AGENTS.md |
 | New convention | docs/conventions/, CONTRIBUTING.md |
 | Breaking change | CHANGELOG.md (with migration guide) |
 | Bug fix | CHANGELOG.md |
-| Debug script added | scripts/README.md, CLAUDE.md |
+| Debug script added | scripts/README.md, AGENTS.md |
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md#changelog-maintenance) for CHANGELOG update guidelines.
