@@ -20,6 +20,33 @@ ADRs help future developers (human and AI) understand:
 
 This is especially valuable for AI coding assistants who need to understand project history and rationale.
 
+## Naming Convention
+
+**This project uses the number-based format**:
+
+```
+###-description-in-kebab-case.md
+
+Examples:
+001-fixture-based-testing.md
+002-script-reorganization.md
+003-agents-md-convention.md
+```
+
+**Why this format**:
+- ✅ Simple and clean
+- ✅ Easy to reference in code/docs (`ADR-001`)
+- ✅ Sequential numbering shows order of decisions
+- ❌ Doesn't show decision date (use git history or check file)
+
+**Alternative format** (not used in this project):
+```
+ADR_YYYYMMDD_NN_description.md    # Date-based format
+ADR_20250131_01_fixture_tests.md  # Example
+```
+
+See [DEVELOPMENT.md](../conventions/DEVELOPMENT.md#adr-naming-conventions) for both formats and trade-offs.
+
 ## ADR Index
 
 | ADR | Title | Status | Date |
