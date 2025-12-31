@@ -380,6 +380,30 @@ npm test
 - Test with visible browser first (`npm run test:headed`)
 - Update fixtures after confirming fix
 
+**Updating CHANGELOG.md** (REQUIRED):
+- **ALWAYS** update CHANGELOG.md for significant changes
+- Add entry to `[Unreleased]` section immediately after making changes
+- Use appropriate category: Added, Changed, Fixed, Security, etc.
+- Write from user perspective (what changed, why it matters)
+- See [CONTRIBUTING.md](./CONTRIBUTING.md#changelog-maintenance) for complete guidelines
+
+**When to update CHANGELOG**:
+- ✅ New features (new MCP tools, significant functionality)
+- ✅ Bug fixes (user-facing issues resolved)
+- ✅ Breaking changes (API changes, required migration)
+- ✅ Security fixes (vulnerabilities patched)
+- ❌ Internal refactoring (unless affects performance)
+- ❌ Test additions (unless enabling new testing patterns)
+
+**Example CHANGELOG entry**:
+```markdown
+### Added
+- Added `get-publication-articles` tool to retrieve articles from Medium publications
+
+### Fixed
+- Fixed login detection failing when `data-testid` attribute missing (Medium UI change Dec 2025)
+```
+
 **⚠️ Assessing Fragility** (CRITICAL):
 
 Before implementing new features, assess risk:
