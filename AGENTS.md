@@ -378,6 +378,30 @@ npm test
 
 ### Development Guidelines
 
+#### Contributing to This Project
+
+**Before contributing, review**:
+
+📘 **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Project-specific contribution guidelines
+- Medium MCP Server setup and workflows
+- Browser automation specifics
+- Fragility assessment
+- Testing requirements
+
+📘 **[Pull Request Best Practices](./docs/best-practices/PULL_REQUESTS.md)** - Universal PR workflow
+- Mandatory PR policy and Definition of Done
+- When to create PRs (draft vs ready)
+- Code review etiquette and efficiency
+- Documentation review process
+
+**Quick checklist before submitting PR**:
+- [ ] All tests pass (`npm run test:all`)
+- [ ] Documentation updated (README, AGENTS.md, ARCHITECTURE.md, CHANGELOG.md)
+- [ ] Follows Definition of Done
+- [ ] Self-review completed
+
+---
+
 **Adding New Tools**:
 - Follow pattern in `index.ts` (Zod schema, error wrapping)
 - Add both unit tests (mocks) and E2E tests
