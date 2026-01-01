@@ -109,9 +109,16 @@ The server provides 8 MCP tools:
 **How It Works**:
 1. **First Use**: Call `login-to-medium` → Browser opens → You log in → Session saved to `medium-session.json`
 2. **Subsequent Uses**: Session auto-loaded → Browser runs headless → No login required ✅
-3. **Expiry**: Session validated before each operation → Re-login triggered if expired
+3. **Auto-Update**: Session automatically saved after every browser operation to keep cookies fresh 🔄
+4. **Expiry**: Session validated before each operation → Re-login triggered if expired
 
 **Session File**: `medium-session.json` (gitignored, stored in project root)
+
+**Session Persistence** (v1.4+):
+- Session automatically updated after ALL browser operations (getUserArticles, getFeed, searchMediumArticles, etc.)
+- Keeps cookies fresh during long-running operations
+- Prevents authentication failures in extended test suites or MCP server sessions
+- No manual intervention required
 
 **Session Validation**:
 - Fast redirect check (5s) before each operation

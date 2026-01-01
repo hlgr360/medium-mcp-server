@@ -213,11 +213,34 @@ preValidateSession()
    - Validate cookies haven't expired
    - Create browser context with session
    - Verify session via fast redirect check
+   - **Auto-save session after operation completes** (v1.4+)
 
 3. **Session Expiry**:
    - Detected by `preValidateSession()` before browser launch
    - OR detected by `validateSessionFast()` after browser launch
    - Triggers re-authentication flow
+
+### Automatic Session Persistence (v1.4+)
+
+**Implementation**: All browser operations automatically call `saveSession()` after successful completion.
+
+**Operations that auto-save session**:
+- `getUserArticles()` - browser-client.ts:600
+- `getArticleContent()` - browser-client.ts:793
+- `publishArticle()` - browser-client.ts:860, 873
+- `searchMediumArticles()` - browser-client.ts:1138
+- `getFeed()` - browser-client.ts:1600
+- `getLists()` - browser-client.ts:1754
+- `getListArticles()` - browser-client.ts:1825
+
+**Why**: Medium may update cookies during normal operations (CSRF tokens, session refreshes). Capturing these updates ensures:
+- Sessions stay valid during long-running operations
+- Test suites can run for extended periods without re-authentication
+- MCP server instances maintain authentication across multiple requests
+
+**Performance**: Minimal overhead (~100ms per operation for JSON write to disk)
+
+**See**: `docs/adr/ADR_20260101_01_session_persistence_after_operations.md` for detailed rationale
 
 ### Fast Session Validation (v1.2+)
 

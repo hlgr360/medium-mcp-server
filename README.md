@@ -269,8 +269,10 @@ User Request → MCP Server → Playwright Browser → Medium Website → Respon
 ### Session Management
 - **Storage**: Login session stored in `medium-session.json` (cookies + localStorage)
 - **Validation**: Cookies are validated for expiration before each operation (5s fast check)
+- **Auto-Update**: Session automatically saved after every operation to keep cookies fresh (v1.4+) ✨
 - **Auto-Login**: If session is invalid/expired, browser opens for re-login automatically
 - **Headless Mode**: Browser uses headless mode when valid session exists, non-headless only for login
+- **Long-Running**: Session stays valid during extended MCP server sessions or test runs
 - **Debugging**: Delete `medium-session.json` to force re-login and test from scratch
 
 ## Example Usage with Claude
