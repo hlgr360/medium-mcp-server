@@ -10,9 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Comprehensive compliance analysis and remediation planning
 - Enhanced documentation with best practices guides
+- Automatic session persistence after all browser operations to keep cookies fresh
+- Unit test suite for session persistence (10 tests, <1s runtime)
+- E2E test for session updates without manual login
+- ADR_20260101_01 documenting session persistence strategy
 
 ### Changed
 - Improved code quality standards documentation
+- All browser operations now automatically save session updates (getUserArticles, getArticleContent, publishArticle, searchMediumArticles, getFeed, getLists, getListArticles)
+- Session management tests redesigned to work without requiring manual login
+
+### Fixed
+- Session cookies now stay fresh during long-running operations and test suites
 
 ## [1.3.0] - 2025-12-27
 
