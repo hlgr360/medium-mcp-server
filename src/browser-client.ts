@@ -595,6 +595,10 @@ export class BrowserMediumClient {
     }
 
     logger.info(`\n✅ Total articles collected: ${allArticles.length}`);
+
+    // Save session to capture any cookie updates
+    await this.saveSession();
+
     return allArticles;
   }
 
@@ -784,6 +788,10 @@ export class BrowserMediumClient {
       });
 
       logger.debug(`✅ Content extraction completed. Length: ${content.length} characters`);
+
+      // Save session to capture any cookie updates
+      await this.saveSession();
+
       return content;
 
     } catch (error) {
@@ -848,17 +856,22 @@ export class BrowserMediumClient {
         if (await saveButton.isVisible()) {
           await saveButton.click();
         }
+        // Save session to capture any cookie updates
+        await this.saveSession();
         return { success: true };
       } else {
         // Publish the article
         const finalPublishButton = await this.page.locator('button:has-text("Publish now"), [data-testid="publish-now"]').first();
         if (await finalPublishButton.isVisible()) {
           await finalPublishButton.click();
-          
+
           // Wait for success and get URL
           await this.page.waitForLoadState('networkidle');
           const currentUrl = this.page.url();
-          
+
+          // Save session to capture any cookie updates
+          await this.saveSession();
+
           return { success: true, url: currentUrl };
         }
       }
@@ -1120,6 +1133,10 @@ export class BrowserMediumClient {
     }, searchQuery);
 
     logger.info(`🎉 Search completed. Found ${articles.length} articles`);
+
+    // Save session to capture any cookie updates
+    await this.saveSession();
+
     return articles;
   }
 
@@ -1578,6 +1595,10 @@ export class BrowserMediumClient {
     const articles = await this.extractArticleCards(limit);
 
     logger.debug(`  ✅ Extracted ${articles.length} article(s) from ${category} feed`);
+
+    // Save session to capture any cookie updates
+    await this.saveSession();
+
     return articles;
   }
 
@@ -1728,6 +1749,10 @@ export class BrowserMediumClient {
     });
 
     logger.info(`  ✅ Found ${lists.length} reading list(s)`);
+
+    // Save session to capture any cookie updates
+    await this.saveSession();
+
     return lists;
   }
 
@@ -1795,6 +1820,10 @@ export class BrowserMediumClient {
     const articles = await this.extractArticleCards(limit);
 
     logger.debug(`  ✅ Extracted ${articles.length} article(s) from list`);
+
+    // Save session to capture any cookie updates
+    await this.saveSession();
+
     return articles;
   }
 

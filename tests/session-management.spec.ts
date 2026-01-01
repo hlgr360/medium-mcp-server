@@ -39,9 +39,14 @@ test.describe('Session Management', () => {
     }
   });
 
-  test('should create session file with cookies and origins after successful login', async () => {
+  test('should create and persist session file after successful manual login', async () => {
     // Note: This test requires manual intervention for login
     // Skip by default (only run when explicitly requested with MANUAL_LOGIN_TEST=true)
+    //
+    // Purpose: Verifies that after a user manually logs in via the browser,
+    // the session is properly saved to disk with all required cookies and origins.
+    // This is the foundation for session persistence - subsequent operations will
+    // update this session file to keep it fresh.
     test.skip(process.env.MANUAL_LOGIN_TEST !== 'true', 'Requires manual login - set MANUAL_LOGIN_TEST=true to run');
 
     await client.initialize(false); // Non-headless for login
@@ -71,6 +76,10 @@ test.describe('Session Management', () => {
       // Check origins (localStorage)
       expect(sessionData.origins).toBeDefined();
       expect(Array.isArray(sessionData.origins)).toBe(true);
+
+      // Verify the session was saved during login
+      console.log('✅ Session file created and persisted after login');
+      console.log('   Session will now be updated after each browser operation');
     }
   });
 
@@ -197,4 +206,64 @@ test.describe('Session Management', () => {
     const isValid = await client.preValidateSession();
     expect(isValid).toBe(true);
   });
+
+  test('should update session file after successful browser operation', async () => {
+    // Create initial valid session
+    const initialSession = {
+      cookies: [
+        {
+          name: 'sid',
+          value: 'initial-test-session',
+          domain: 'medium.com',
+          path: '/',
+          expires: Date.now() / 1000 + (365 * 24 * 60 * 60),
+          httpOnly: true,
+          secure: true,
+          sameSite: 'Lax' as const
+        }
+      ],
+      origins: []
+    };
+
+    writeFileSync(sessionPath, JSON.stringify(initialSession, null, 2));
+
+    // Record initial file modification time and content
+    const { statSync } = require('fs');
+    const initialStats = statSync(sessionPath);
+    const initialMtime = initialStats.mtime.getTime();
+    const initialContent = readFileSync(sessionPath, 'utf8');
+
+    // Wait to ensure modification time will differ
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Initialize browser with the session
+    await client.initialize();
+
+    // Perform a real operation that should automatically call saveSession()
+    // Using searchMediumArticles because it doesn't require authentication
+    try {
+      await client.searchMediumArticles(['test']);
+    } catch (error) {
+      // Search may fail but should still save session
+      // We only care that saveSession() was called
+    }
+
+    // Verify session file was updated automatically
+    const updatedStats = statSync(sessionPath);
+    const updatedMtime = updatedStats.mtime.getTime();
+    const updatedContent = readFileSync(sessionPath, 'utf8');
+
+    // Session file should have been updated (newer modification time)
+    expect(updatedMtime).toBeGreaterThan(initialMtime);
+
+    // Content should have changed (browser updates cookies)
+    expect(updatedContent).not.toBe(initialContent);
+
+    // Verify session file still has valid structure
+    const updatedSession = JSON.parse(updatedContent);
+    expect(updatedSession).toHaveProperty('cookies');
+    expect(Array.isArray(updatedSession.cookies)).toBe(true);
+    expect(updatedSession.cookies.length).toBeGreaterThan(0);
+  }, 60000); // 60s timeout for browser operation
+
 });
