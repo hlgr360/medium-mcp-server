@@ -8,7 +8,7 @@ Comprehensive documentation for Medium MCP Server.
 
 **Getting Started**:
 - [README.md](../README.md) - Installation, configuration, usage guide
-- [Configuration Examples](../examples/) - Claude Desktop config examples
+- [Configuration Examples](../examples/README.md) - Claude Desktop config examples
 
 **Understanding the Project**:
 - [CHANGELOG.md](../CHANGELOG.md) - Version history and release notes
